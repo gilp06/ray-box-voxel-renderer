@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#include <shader.hpp>
-#include <cam.hpp>
+#include <gfx/shader.hpp>
+#include <gfx/cam.hpp>
 
 class AppState
 {
@@ -12,7 +12,6 @@ public:
     AppState();
     void Run();
     void Input();
-    void Init();
     void Update();
     void Render();
 

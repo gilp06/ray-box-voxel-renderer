@@ -44,7 +44,7 @@ void Camera::SetRotation(float yaw, float pitch)
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
     front = glm::normalize(front);
-    std::cout << front.x << " " << front.y << " " << front.z << std::endl;
+    // std::cout << front.x << " " << front.y << " " << front.z << std::endl;
 }
 
 void Camera::ProcessInputs(GLFWwindow *window, float delta_time, float x_offset, float y_offset)

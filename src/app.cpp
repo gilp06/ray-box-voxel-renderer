@@ -1,7 +1,8 @@
-#include "app.hpp"
+#include <app.hpp>
 
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
+#include "world/block_type.hpp"
 
 // callback handlers
 
@@ -34,6 +35,11 @@ void MessageCallback(GLenum source,
 
 AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480.0f, 0.1f, 1000.0f, 90.0f, 0.0f)
 {
+    // World Initialization
+    BlockManager::RegisterBlock("air", {BlockType::Empty, 0});
+    BlockManager::RegisterDirectory("resources/blocks");
+
+
     // Render Initialization
 
     if (!glfwInit())
@@ -74,7 +80,7 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
+
     glDebugMessageCallback(MessageCallback, 0);
 
     // vao initialization
@@ -88,9 +94,24 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480
     // test triangle
     float points[] = {
         // positions         // colors
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f    // top
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
@@ -102,7 +123,7 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Shader initialization
-    shader = new ShaderProgram("shaders/chunk.vert.glsl", "shaders/chunk.frag.glsl");
+    shader = new ShaderProgram("resources/shaders/chunk.vert.glsl", "resources/shaders/chunk.frag.glsl");
 
     // // uniform buffer initialization
     GLuint ubo;
@@ -144,10 +165,6 @@ void AppState::Input()
     camera.ProcessInputs(window, delta_time, xoffset, yoffset);
 }
 
-void AppState::Init()
-{
-}
-
 void AppState::Update()
 {
     camera.UpdateAspectRatio(width / (float)height);
@@ -184,7 +201,6 @@ void AppState::Render()
 
 void AppState::Run()
 {
-    Init();
     while (!glfwWindowShouldClose(window))
     {
         glClearColor(0.0, 0.0, 0.0, 1.0);
