@@ -1,5 +1,6 @@
 #include <world/chunk.hpp>
 #include <vector>
+#include <iostream>
 
 UncompressedChunk::UncompressedChunk()
 {

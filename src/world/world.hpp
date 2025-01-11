@@ -24,7 +24,7 @@
 const int CHUNK_ACTIVE_DISTANCE = 4;
 const int CHUNK_LOAD_DISTANCE = 8;
 
-using ChunkVariantRef = std::variant<UncompressedChunk &, CompressedChunk &>;
+using ChunkVariantRef = std::variant<std::reference_wrapper<UncompressedChunk>, std::reference_wrapper<CompressedChunk>>;
 
 class World
 {

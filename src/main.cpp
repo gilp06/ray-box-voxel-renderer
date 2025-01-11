@@ -6,32 +6,46 @@
 #include <variant>
 int main()
 {
-    World w;
+    // World w;
 
-    auto start = std::chrono::high_resolution_clock::now();
-    w.NewChunk({0, 0, 0});
-    auto end = std::chrono::high_resolution_clock::now();
+    // auto start = std::chrono::high_resolution_clock::now();
+    // w.NewChunk({0, 0, 0});
+    // auto end = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Time to create chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+    // std::cout << "Time to create chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-    // add blocks to chunk
+    // // add blocks to chunk
 
-    UncompressedChunk &chunk = std::get<UncompressedChunk &>(w.GetChunk({0, 0, 0}));
-    chunk.SetBlock(0, 0, 0, "dirt");
-    chunk.SetBlock(0, 1, 0, "dirt");
-    chunk.SetBlock(0, 2, 0, "dirt");
+    // UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk({0, 0, 0}));
+    // start = std::chrono::high_resolution_clock::now();
+    // for (int x = 0; x < CHUNK_SIZE; x++)
+    // {
+    //     for (int y = 0; y < CHUNK_SIZE; y++)
+    //     {
+    //         for (int z = 0; z < CHUNK_SIZE; z++)
+    //         {
+    //             chunk.SetBlock(x, y, z, 1);
+    //         }
+    //     }
+    // }
+    // end = std::chrono::high_resolution_clock::now();
 
-    start = std::chrono::high_resolution_clock::now();
-    w.DeactivateChunk({0, 0, 0});
-    end = std::chrono::high_resolution_clock::now();
+    // std::cout << "Time to set blocks: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-    std::cout << "Time to deactivate chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+    // start = std::chrono::high_resolution_clock::now();
+    // w.DeactivateChunk({0, 0, 0});
+    // end = std::chrono::high_resolution_clock::now();
 
-    start = std::chrono::high_resolution_clock::now();
-    w.ActivateChunk({0, 0, 0});
-    end = std::chrono::high_resolution_clock::now();
+    // std::cout << "Time to deactivate chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
-    std::cout << "Time to activate chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
-    // AppState app;
-    // app.Run();
+    // start = std::chrono::high_resolution_clock::now();
+    // w.ActivateChunk({0, 0, 0});
+    // end = std::chrono::high_resolution_clock::now();
+
+    // std::cout << "Time to activate chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+
+    // UncompressedChunk &chunk2 = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk({0, 0, 0}));
+
+    AppState app;
+    app.Run();
 }
