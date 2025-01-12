@@ -7,9 +7,12 @@
 
 #include <glad/gl.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 struct ChunkBufferItem
 {
-    glm::u8vec3 position;
+    glm::uvec3 position;
     uint32_t color;
 };
 
@@ -21,6 +24,8 @@ public:
     GPUChunk(UncompressedChunk &chunk);
 
     void Free();
+    void Use();
+
     GLuint vbo;
     size_t size;
 };
@@ -34,8 +39,8 @@ public:
     void AddChunk(glm::ivec3 position, UncompressedChunk &chunk);
     void RemoveChunk(glm::ivec3 position);
     void Render();
-    ShaderProgram shader;
-    GLuint vao;
+    ShaderProgram* shader = nullptr;
+    GLuint vao = 0;
     // loaded chunks
     std::unordered_map<glm::ivec3, GPUChunk> chunks;
 };

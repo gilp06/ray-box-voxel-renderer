@@ -3,6 +3,8 @@
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
 #include "world/block_type.hpp"
+#include <chrono>
+#include <random>
 
 // callback handlers
 
@@ -33,12 +35,43 @@ void MessageCallback(GLenum source,
             type, severity, message);
 }
 
-AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480.0f, 0.1f, 1000.0f, 90.0f, 0.0f)
+AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0f, 0.1f, 1000.0f, 90.0f, 0.0f)
 {
     // World Initialization
     BlockManager::RegisterBlock("air", {BlockType::Empty, 0});
     BlockManager::RegisterDirectory("resources/blocks");
 
+    // generate a 10x10 area of chunks
+
+    for (int x = -40; x < 40; x++)
+    {
+        for (int z = -40; z < 40; z++)
+        {
+            w.NewChunk(glm::ivec3(x, 0, z));
+            UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
+
+            for (size_t i = 0; i < 4096; i++)
+            {
+                // randomly place grass block
+
+                if (rand() % 100 < 10)
+                {
+                    chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("grass");
+                }
+                else
+                {
+                    chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("air");
+                }
+            }
+        }
+    }
+
+    UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(0, 0, 0)));
+    for (size_t i = 0; i < 4096; i++)
+    {
+        chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("air");
+    }
+    
 
     // Render Initialization
 
@@ -72,6 +105,8 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
+
     gladLoadGL(glfwGetProcAddress);
     glViewport(0, 0, width, height);
 
@@ -81,60 +116,30 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, -15.0f), 90.0f, 640.0f / 480
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glDebugMessageCallback(MessageCallback, 0);
-
-    // vao initialization
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // vbo initialization
-    glGenBuffers(1, &chunk_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, chunk_vbo);
-
-    // test triangle
-    float points[] = {
-        // positions         // colors
-        0.0f,
-        0.0f,
-        0.0f,
-        0.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-        0.0f,
-        0.0f,
-        0.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-        1.0f,
-        0.0f,
-        0.0f,
-        1.0f,
-        0.0f,
-    };
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Shader initialization
-    shader = new ShaderProgram("resources/shaders/chunk.vert.glsl", "resources/shaders/chunk.frag.glsl");
+    // glDebugMessageCallback(MessageCallback, 0);
 
     // // uniform buffer initialization
+
     GLuint ubo;
     glGenBuffers(1, &ubo);
-
-    shader->SetUniformBlock("ubo", 0);
 
     glBindBuffer(GL_UNIFORM_BUFFER, ubo);
     glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4) + sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+
+    chunk_renderer = new ChunkRenderer();
+
+    for (int x = -40; x < 40; x++)
+    {
+        for (int z = -40; z < 40; z++)
+        {
+            UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
+            chunk_renderer->AddChunk(glm::ivec3(x, 0, z), chunk);
+        }
+    }
+
+    // Chunk Renderer Initialization
 }
 
 void AppState::Input()
@@ -185,6 +190,17 @@ void AppState::Update()
     //     std::cout << std::endl;
     // }
 
+    // framerate
+    // if one second has passed print framerate
+    static auto last_time = std::chrono::high_resolution_clock::now();
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(current_time - last_time);
+    if (duration.count() >= 1)
+    {
+        std::cout << "FPS: " << 1 / delta_time << std::endl;
+        last_time = current_time;
+    }
+
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(proj));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view_rot));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, sizeof(glm::mat4), glm::value_ptr(view_pos));
@@ -195,8 +211,9 @@ void AppState::Update()
 void AppState::Render()
 {
     // glBindVertexArray(vao);
-    shader->Use();
-    glDrawArrays(GL_POINTS, 0, 3);
+    // shader->Use();
+    // glDrawArrays(GL_POINTS, 0, 3);
+    chunk_renderer->Render();
 }
 
 void AppState::Run()

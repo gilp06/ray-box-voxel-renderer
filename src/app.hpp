@@ -5,6 +5,8 @@
 
 #include <gfx/shader.hpp>
 #include <gfx/cam.hpp>
+#include <gfx/chunk_renderer.hpp>
+#include <world/world.hpp>
 
 class AppState
 {
@@ -15,15 +17,13 @@ public:
     void Update();
     void Render();
 
-    GLFWwindow *window = nullptr;
-    ShaderProgram* shader = nullptr;
-    
-    GLuint vao = 0;
-    GLuint chunk_vbo = 0;
-    GLuint ubo = 0;
-
     Camera camera;
+    World w;
+    
+    ChunkRenderer* chunk_renderer = nullptr;
 
+    GLFWwindow *window = nullptr;
+    GLuint ubo = 0;
     float last_frame = 0.0f;
     float delta_time = 0.0f;
 

@@ -1,5 +1,9 @@
+#pragma once
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <string>
 #include <vector>
@@ -13,6 +17,8 @@ class ShaderProgram {
         void AddShader(const std::string &shader_file, GLenum type);
         void Use();
         void SetUniformBlock(const std::string &block_name, GLuint binding_point);
+
+        void SetUniformIVec3(const std::string &name, const glm::ivec3 &value);
     private:
         GLuint program = 0;
         std::vector<GLuint> shaders;

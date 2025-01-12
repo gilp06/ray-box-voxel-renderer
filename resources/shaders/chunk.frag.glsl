@@ -74,5 +74,5 @@ void main() {
     
 
     gl_FragDepth = result.x / 1000.0;
-    FragColor = vec4(vertexOutput.color, 1.0);
+    FragColor = vec4((normal + 1.0)/2.0, 1.0);
 }

@@ -6,8 +6,8 @@ struct VertexOutput {
 };
 
 
-layout(location = 0) in vec3 aPos;
-layout(location = 1) in vec3 aColor;
+layout(location = 0) in uvec3 aPos;
+layout(location = 1) in uint aColor;
 
 layout(std140) uniform ubo {
     mat4 proj;
@@ -17,16 +17,20 @@ layout(std140) uniform ubo {
     vec4 uViewport;
 };
 
+uniform ivec3 chunk_pos;
+
+
+out VertexOutput vertexOutput;
+
+
 
 mat4 getViewRotation(in mat4 view) {
     return mat4(mat3(view));
 };
 
-out VertexOutput vertexOutput;
-
 void main() {
-    vertexOutput.position = view_pos * (vec4(aPos,1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
-    vertexOutput.color = aColor;
+    vertexOutput.position = view_pos * (vec4((16 * chunk_pos + ivec3(aPos)),1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
+    vertexOutput.color = vec3(1.0,1.0,1.0);
 
     gl_Position = proj * view_rot * vertexOutput.position;
     float ratio = uViewport.z / uViewport.w;

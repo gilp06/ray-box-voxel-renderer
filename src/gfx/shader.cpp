@@ -95,3 +95,9 @@ void ShaderProgram::SetUniformBlock(const std::string &block_name, GLuint bindin
     GLuint block_index = glGetUniformBlockIndex(program, block_name.c_str());
     glUniformBlockBinding(program, block_index, binding_point);
 }
+
+void ShaderProgram::SetUniformIVec3(const std::string &name, const glm::ivec3 &value)
+{
+    GLint location = glGetUniformLocation(program, name.c_str());
+    glUniform3iv(location, 1, glm::value_ptr(value));
+}
