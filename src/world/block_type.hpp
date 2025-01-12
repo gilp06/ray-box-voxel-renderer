@@ -28,7 +28,7 @@ public:
     static uint8_t GetBlockIndex(const std::string& name);
     static BlockData GetBlockData(uint8_t index);
 
-private:
+public:
     static std::vector<BlockData> block_datas;
     static std::unordered_map<std::string, uint8_t> block_index_map;
 };

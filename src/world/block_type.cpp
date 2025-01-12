@@ -51,6 +51,11 @@ void BlockManager::RegisterDirectory(const std::string &directory)
 
 BlockData BlockManager::GetBlockData(const std::string &name)
 {
+    // if block does not exist, return air block
+    if (block_index_map.find(name) == block_index_map.end())
+    {
+        return block_datas[GetBlockIndex("air")];
+    }
     return block_datas[GetBlockIndex(name)];
 }
 

@@ -41,26 +41,26 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     BlockManager::RegisterBlock("air", {BlockType::Empty, 0});
     BlockManager::RegisterDirectory("resources/blocks");
 
+    // list all blocks and their indices
+    for (auto &block : BlockManager::block_index_map)
+    {
+        std::cout << block.first << " " << (int)block.second << std::endl;
+    }
+
     // generate a 10x10 area of chunks
 
-    for (int x = -40; x < 40; x++)
+    for (int x = -5; x < 5; x++)
     {
-        for (int z = -40; z < 40; z++)
+        for (int z = -5; z < 5; z++)
         {
             w.NewChunk(glm::ivec3(x, 0, z));
             UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
 
-            for (size_t i = 0; i < 4096; i++)
+            for (int i = 0; i < 16; i++)
             {
-                // randomly place grass block
-
-                if (rand() % 100 < 1)
+                for (int j = 0; j < 16; j++)
                 {
-                    chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("grass");
-                }
-                else
-                {
-                    chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("air");
+                    chunk.SetBlock(i, 1, j, "grass");
                 }
             }
         }
@@ -71,7 +71,6 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     {
         chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("air");
     }
-    
 
     // Render Initialization
 
@@ -116,7 +115,7 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    // glDebugMessageCallback(MessageCallback, 0);
+    glDebugMessageCallback(MessageCallback, 0);
 
     // // uniform buffer initialization
 
@@ -130,9 +129,9 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
 
     chunk_renderer = new ChunkRenderer();
 
-    for (int x = -40; x < 40; x++)
+    for (int x = -5; x < 5; x++)
     {
-        for (int z = -40; z < 40; z++)
+        for (int z = -5; z < 5; z++)
         {
             UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
             chunk_renderer->AddChunk(glm::ivec3(x, 0, z), chunk);

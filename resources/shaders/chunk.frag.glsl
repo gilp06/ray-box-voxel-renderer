@@ -70,9 +70,11 @@ void main() {
         float(hit_abs.y == max_dim),
         float(hit_abs.z == max_dim)
     )*sign(hit);
-    
-    
+
+    vec3 color;
+    vec3 r = -normal;
+    color = vertexOutput.color * max( 0.7, sign( dot(r, light) ) ) * float(result.x > 0.0);
 
     gl_FragDepth = result.x / 1000.0;
-    FragColor = vec4((normal + 1.0)/2.0, 1.0);
+    FragColor = vec4(color, 1.0);
 }

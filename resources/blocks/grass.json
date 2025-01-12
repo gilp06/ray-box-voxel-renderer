@@ -1,5 +1,5 @@
 {
     "name": "grass",
     "block_type": "solid",
-    "color": [0, 255, 0, 0]
+    "color": [86, 125, 70, 255]
 }

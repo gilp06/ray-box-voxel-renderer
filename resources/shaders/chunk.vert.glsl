@@ -28,9 +28,18 @@ mat4 getViewRotation(in mat4 view) {
     return mat4(mat3(view));
 };
 
+vec4 unpackColor(in uint color) {
+    return vec4(
+        float((color & 0xFF000000) >> 24) / 255.0,
+        float((color & 0x00FF0000) >> 16) / 255.0,
+        float((color & 0x0000FF00) >> 8) / 255.0,
+        float((color & 0x000000FF)) / 255.0
+    );
+};
+
 void main() {
     vertexOutput.position = view_pos * (vec4((16 * chunk_pos + ivec3(aPos)),1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
-    vertexOutput.color = vec3(1.0,1.0,1.0);
+    vertexOutput.color = unpackColor(aColor).rgb;
 
     gl_Position = proj * view_rot * vertexOutput.position;
     float ratio = uViewport.z / uViewport.w;
@@ -40,7 +49,7 @@ void main() {
 	);
 
     reduce += 0.03;
-    float scale = 1.05;
+    float scale = 1.1;
     float size = (uViewport.w*scale) / gl_Position.z * max(reduce, 1.0);
     gl_PointSize = size;
 }

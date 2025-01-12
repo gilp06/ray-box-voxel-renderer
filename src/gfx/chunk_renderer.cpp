@@ -7,21 +7,31 @@ GPUChunk::GPUChunk(CompressedChunk &chunk) : GPUChunk(chunk.Decompress())
 
 GPUChunk::GPUChunk(UncompressedChunk &chunk)
 {
-    std::vector<ChunkBufferItem> buffer;
+    glm::uvec3 position;
+    uint32_t color = 0;
+    size = 0;
+
+    std::vector<uint32_t> buffer;
     for (size_t i = 0; i < 4096; i++)
     {
         BlockData block = BlockManager::GetBlockData(chunk.GetBlocks()[i]);
+
         if (block.type == BlockType::Empty)
             continue;
 
-        ChunkBufferItem item;
-        item.position = glm::u8vec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
-        item.color = block.color;
+        position = glm::uvec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
+        color = block.color;
 
-        buffer.push_back(item);
+        if (color == 0)
+            std::cout << "Color is 0" << std::endl;
+
+        buffer.push_back(position.x);
+        buffer.push_back(position.y);
+        buffer.push_back(position.z);
+        buffer.push_back(color);
+        size++;
     }
 
-    size = buffer.size();
     if (size == 0)
     {
         return;
@@ -29,10 +39,10 @@ GPUChunk::GPUChunk(UncompressedChunk &chunk)
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(uint32_t), buffer.data(), GL_STATIC_DRAW);
 
-    glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
+    glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void *)0);
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void *)(3 * sizeof(uint32_t)));
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
