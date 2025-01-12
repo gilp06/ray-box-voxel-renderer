@@ -54,7 +54,7 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
             {
                 // randomly place grass block
 
-                if (rand() % 100 < 10)
+                if (rand() % 100 < 1)
                 {
                     chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("grass");
                 }
