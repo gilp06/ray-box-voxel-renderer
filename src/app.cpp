@@ -5,6 +5,7 @@
 #include "world/block_type.hpp"
 #include <chrono>
 #include <random>
+#include <utils/utils.hpp>
 
 // callback handlers
 
@@ -22,55 +23,28 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     app->height = height;
 }
 
-void MessageCallback(GLenum source,
-                     GLenum type,
-                     GLuint id,
-                     GLenum severity,
-                     GLsizei length,
-                     const GLchar *message,
-                     const void *userParam)
-{
-    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-            type, severity, message);
-}
-
 AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0f, 0.1f, 1000.0f, 90.0f, 0.0f)
 {
     // World Initialization
     BlockManager::RegisterBlock("air", {BlockType::Empty, 0});
     BlockManager::RegisterDirectory("resources/blocks");
 
-    // list all blocks and their indices
-    for (auto &block : BlockManager::block_index_map)
-    {
-        std::cout << block.first << " " << (int)block.second << std::endl;
-    }
-
-    // generate a 10x10 area of chunks
-
-    for (int x = -5; x < 5; x++)
-    {
-        for (int z = -5; z < 5; z++)
-        {
-            w.NewChunk(glm::ivec3(x, 0, z));
-            UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
-
-            for (int i = 0; i < 16; i++)
-            {
-                for (int j = 0; j < 16; j++)
-                {
-                    chunk.SetBlock(i, 1, j, "grass");
-                }
-            }
-        }
-    }
-
-    UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(0, 0, 0)));
-    for (size_t i = 0; i < 4096; i++)
-    {
-        chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("air");
-    }
+    std::random_device rd;
+    int count = 0;
+    // for (int x = -10; x < 10; x++)
+    // {
+    //     for (int z = -10; z < 10; z++)
+    //     {
+    //         Chunk& chunk = w.NewChunk(glm::ivec3(x, 0, z));
+    //         // fill with random blocks
+    //         for (uint16_t i = 0; i < CHUNK_VOLUME; i++)
+    //         {
+    //             chunk.GetBlocks()[i] = BlockManager::GetBlockIndex("grass");
+    //         }
+    //         count++;
+    //         std::cout<< "Chunk " << count << " created" << std::endl;
+    //     }
+    // }
 
     // Render Initialization
 
@@ -111,11 +85,14 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
 
     // features
     glEnable(GL_PROGRAM_POINT_SIZE);
-    glEnable(GL_DEBUG_OUTPUT);
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glDebugMessageCallback(MessageCallback, 0);
+#ifdef _DEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(message_callback, 0);
+#endif
 
     // // uniform buffer initialization
 
@@ -127,16 +104,16 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
 
-    chunk_renderer = new ChunkRenderer();
+    chunk_renderer = new ChunkRenderer(w);
 
-    for (int x = -5; x < 5; x++)
-    {
-        for (int z = -5; z < 5; z++)
-        {
-            UncompressedChunk &chunk = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk(glm::ivec3(x, 0, z)));
-            chunk_renderer->AddChunk(glm::ivec3(x, 0, z), chunk);
-        }
-    }
+    // for (int x = -10; x < 10; x++)
+    // {
+    //     for (int z = -10; z < 10; z++)
+    //     {
+    //         Chunk &chunk = w.GetChunk(glm::ivec3(x, 0, z));
+    //         chunk_renderer->AddChunk(glm::ivec3(x, 0, z));
+    //     }
+    // }
 
     // Chunk Renderer Initialization
 }
@@ -177,6 +154,12 @@ void AppState::Update()
 
     glm::mat4 view_rot = glm::mat4(glm::mat3(view));
     glm::mat4 view_pos = glm::translate(glm::mat4(1.0f), -camera.pos);
+
+    // update world load
+
+    w.Update(camera.pos);
+    // chunk_renderer->Update();
+    // chunk_renderer->AddChunk(glm::ivec3(0, 0, 0));
 
     // std::cout << camera.pos.x << " " << camera.pos.y << " " << camera.pos.z << std::endl;
     // print full view matrix

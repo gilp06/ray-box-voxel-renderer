@@ -4,12 +4,12 @@
 #include <vector>
 
 constexpr uint8_t CHUNK_SIZE = 16;
-// 16x16x16
+constexpr uint32_t CHUNK_VOLUME = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
 
-class UncompressedChunk
+class Chunk
 {
 public:
-    UncompressedChunk();
+    Chunk();
 
     void SetBlock(uint16_t x, uint16_t y, uint16_t z, uint8_t block_manager_index);
     void SetBlock(uint16_t x, uint16_t y, uint16_t z, const std::string &block_name);
@@ -17,15 +17,15 @@ public:
     uint8_t *GetBlocks();
 
 private:
-    uint8_t blocks[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+    uint8_t blocks[CHUNK_VOLUME];
 };
 
-class CompressedChunk
-{
-public:
-    CompressedChunk() = default;
-    CompressedChunk(UncompressedChunk &uncompressed_chunk);
-    UncompressedChunk Decompress();
-    // rle compressed data
-    std::vector<uint16_t> data;
-};
+// class CompressedChunk
+// {
+// public:
+//     CompressedChunk() = default;
+//     CompressedChunk(UncompressedChunk &uncompressed_chunk);
+//     UncompressedChunk Decompress();
+//     // rle compressed data
+//     std::vector<uint16_t> data;
+// };

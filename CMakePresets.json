@@ -1,0 +1,57 @@
+{
+    "version": 3,
+  
+    "configurePresets": [
+      {
+        "name": "windows-base",
+        "hidden": true,
+        "generator": "Visual Studio 17 2022",
+        "binaryDir": "${sourceDir}/build/${presetName}",
+        "architecture": {
+          "value": "x64",
+          "strategy": "external"
+        },
+        "installDir": "${sourceDir}/build/install/${presetName}",
+        "cacheVariables": {
+          "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+        },
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Windows"
+        }
+      },
+      {
+        "name": "x64-debug",
+        "displayName": "x64 Debug",
+        "inherits": "windows-base",
+        "cacheVariables": {
+          "DCMAKE_BUILD_TYPE": "Debug",
+          "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        }
+      },
+      {
+        "name": "x64-release",
+        "displayName": "x64 Release",
+        "inherits": "windows-base",
+        "cacheVariables": {
+          "DCMAKE_BUILD_TYPE": "Release",
+          "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "windows-debug",
+        "displayName": "Debug",
+        "configurePreset": "x64-debug",
+        "configuration": "Debug"
+      },
+      {
+        "name": "windows-release",
+        "displayName": "Release",
+        "configurePreset": "x64-release",
+        "configuration": "Release"
+      }
+    ]
+  }

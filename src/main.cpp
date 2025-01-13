@@ -4,6 +4,7 @@
 #include <world/world.hpp>
 #include <chrono>
 #include <variant>
+
 int main()
 {
     // World w;
@@ -45,6 +46,20 @@ int main()
     // std::cout << "Time to activate chunk: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
     // UncompressedChunk &chunk2 = std::get<std::reference_wrapper<UncompressedChunk>>(w.GetChunk({0, 0, 0}));
+
+    // SVO svo;
+    // svo.Insert({0, 15, 15}, 1);
+    // svo.Insert({0, 14, 15}, 2);
+    // std::cout << (uint32_t) svo.Get({0, 15, 15}) << std::endl;
+    // std::cout << (uint32_t) svo.Get({0, 14, 15}) << std::endl;
+
+    // SVO svo;
+    // svo.Insert({0, 15, 15}, 1);
+    // svo.Insert({0, 14, 15}, 2);
+
+    // std::cout << *svo.Find({0, 15, 15}) << std::endl;
+    // std::cout << *svo.Find({0, 14, 15}) << std::endl;
+
 
     AppState app;
     app.Run();

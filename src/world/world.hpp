@@ -9,38 +9,56 @@
 #include <world/chunk.hpp>
 #include <variant>
 #include <optional>
+#include <deque>
+
+#include <functional>
+
+#include <GLFW/glfw3.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-// stores all chunks loaded in memory and manages chunk loading and unloading
-// chunks are stored in a hashmap with their position as the key
-// chunks are stored in a compressed format in memory
-// when a chunk is deemed active it is decompressed and stored in an uncompressed format
-// when a chunk is deemed inactive it is compressed and stored in a compressed format
-// chunks are loaded and unloaded based on the player's position
-// inactive chunks are still considered "loaded" but cannot be edited.
+constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
+constexpr int32_t CHUNK_DISTANCE = 16;
 
-const int CHUNK_ACTIVE_DISTANCE = 4;
-const int CHUNK_LOAD_DISTANCE = 8;
-
-using ChunkVariantRef = std::variant<std::reference_wrapper<UncompressedChunk>, std::reference_wrapper<CompressedChunk>>;
+// using ChunkVariantRef = std::variant<std::reference_wrapper<Chunk>, std::reference_wrapper<CompressedChunk>>;
 
 class World
 {
 public:
+    using ChunkCallback = std::function<void(const glm::ivec3 &)>;
     World() = default;
 
-    ChunkVariantRef GetChunk(glm::ivec3 position);
-    void NewChunk(glm::ivec3 position);
+    Chunk &GetChunk(glm::ivec3 position);
+    Chunk &NewChunk(glm::ivec3 position);
     void UnloadChunk(glm::ivec3 position);
+    bool ChunkLoaded(glm::ivec3 position);
 
-    void ActivateChunk(glm::ivec3 position);
-    void DeactivateChunk(glm::ivec3 position);
+    // void ActivateChunk(glm::ivec3 position);
+    // void DeactivateChunk(glm::ivec3 position);
 
     void Update(glm::vec3 player_position);
+    void UpdateAdjacentChunks(glm::ivec3 position);
+
+    void SubscribeToChunkLoad(ChunkCallback callback);
+    void SubscribeToChunkUnload(ChunkCallback callback);
+    void SubscribeToChunkUpdate(ChunkCallback callback);
+
+    void Input(GLFWwindow *window);
 
 private:
-    std::unordered_map<glm::ivec3, UncompressedChunk> active_chunks;
-    std::unordered_map<glm::ivec3, CompressedChunk> inactive_chunks;
+    std::unordered_map<glm::ivec3, Chunk> active_chunks;
+    std::deque<glm::ivec3> chunks_to_load;
+    std::deque<glm::ivec3> chunks_to_unload;
+
+    std::vector<ChunkCallback> chunk_load_callbacks;
+    std::vector<ChunkCallback> chunk_unload_callbacks;
+    std::vector<ChunkCallback> chunk_update_callbacks;
+
+    
+
+    void NotifyChunkLoad(const glm::ivec3 &position);
+    void NotifyChunkUnload(const glm::ivec3 &position);
+    void NotifyChunkUpdate(const glm::ivec3 &position);
+    // std::unordered_map<glm::ivec3, CompressedChunk> inactive_chunks;
 };

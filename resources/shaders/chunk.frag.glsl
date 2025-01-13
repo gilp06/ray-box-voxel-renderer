@@ -13,6 +13,8 @@ layout(std140) uniform ubo {
     vec4 uViewport;
 };
 
+
+
 in VertexOutput vertexOutput;
 out vec4 FragColor;
 

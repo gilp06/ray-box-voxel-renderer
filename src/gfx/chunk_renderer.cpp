@@ -1,126 +1,201 @@
 #include <gfx/chunk_renderer.hpp>
 #include <iostream>
+#include "chunk_renderer.hpp"
 
-GPUChunk::GPUChunk(CompressedChunk &chunk) : GPUChunk(chunk.Decompress())
+ChunkRenderer::ChunkRenderer(World &world) : world(world)
 {
-}
-
-GPUChunk::GPUChunk(UncompressedChunk &chunk)
-{
-    glm::uvec3 position;
-    uint32_t color = 0;
-    size = 0;
-
-    std::vector<uint32_t> buffer;
-    for (size_t i = 0; i < 4096; i++)
-    {
-        BlockData block = BlockManager::GetBlockData(chunk.GetBlocks()[i]);
-
-        if (block.type == BlockType::Empty)
-            continue;
-
-        position = glm::uvec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
-        color = block.color;
-
-        if (color == 0)
-            std::cout << "Color is 0" << std::endl;
-
-        buffer.push_back(position.x);
-        buffer.push_back(position.y);
-        buffer.push_back(position.z);
-        buffer.push_back(color);
-        size++;
-    }
-
-    if (size == 0)
-    {
-        return;
-    }
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(uint32_t), buffer.data(), GL_STATIC_DRAW);
-
-    glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void *)0);
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void *)(3 * sizeof(uint32_t)));
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void GPUChunk::Free()
-{
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &vbo);
-}
-
-void GPUChunk::Use()
-{
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-}
-
-ChunkRenderer::ChunkRenderer()
-{
-    // binding vao
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // setup vertex attributes
-    // glVertexAttribIPointer(0, 3, GL_UNSIGNED_BYTE, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
-    // glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
-
-    // setup shader
     shader = new ShaderProgram("resources/shaders/chunk.vert.glsl", "resources/shaders/chunk.frag.glsl");
+    shader->Use();
     shader->SetUniformBlock("ubo", 0);
+    shader->SetUniformUInt("CHUNK_SIZE", (uint32_t)CHUNK_SIZE);
+
+    world.SubscribeToChunkLoad([this](const glm::ivec3 &position)
+                               { this->OnChunkLoad(position); });
+    world.SubscribeToChunkUnload([this](const glm::ivec3 &position)
+                                 { this->OnChunkUnload(position); });
+    world.SubscribeToChunkUpdate([this](const glm::ivec3 &position)
+                                 { this->OnChunkUpdate(position); });
 }
 
 ChunkRenderer::~ChunkRenderer()
 {
-    for (auto &chunk : chunks)
-    {
-        chunk.second.Free();
-    }
-
-    glDeleteVertexArrays(1, &vao);
     delete shader;
 }
 
-void ChunkRenderer::AddChunk(glm::ivec3 position, CompressedChunk &chunk)
+void ChunkRenderer::AddChunk(glm::ivec3 position)
 {
-    auto outcome = chunks.try_emplace(position, chunk);
-}
+    if (chunks.find(position) != chunks.end())
+    {
+        return;
+    }
 
-void ChunkRenderer::AddChunk(glm::ivec3 position, UncompressedChunk &chunk)
-{
-    auto outcome = chunks.try_emplace(position, chunk);
-    // print whether or not the chunk was added
+    chunks.try_emplace(position, position, world);
 }
 
 void ChunkRenderer::RemoveChunk(glm::ivec3 position)
 {
-    auto it = chunks.find(position);
-    if (it != chunks.end())
+    if (chunks.find(position) == chunks.end())
     {
-        it->second.Free();
-        chunks.erase(it);
+        return;
     }
+
+    chunks.erase(position);
 }
 
 void ChunkRenderer::Render()
 {
-    glBindVertexArray(vao);
 
-    for (auto &chunk : chunks)
+    for (auto &[position, chunk] : chunks)
     {
-        if (chunk.second.size == 0)
-            continue;
-
-        shader->Use();
-        shader->SetUniformIVec3("chunk_pos", glm::vec3(chunk.first));
-
-        chunk.second.Use();
-        glDrawArrays(GL_POINTS, 0, chunk.second.size);
+        shader->SetUniformIVec3("chunk_pos", position);
+        // std::cout << "Rendering chunk at " << position.x << " " << position.y << " " << position.z << std::endl;
+        // std::cout << "Chunk size: " << chunk.size << std::endl;
+        glBindVertexArray(chunk.vao);
+        glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
+        glDrawArrays(GL_POINTS, 0, chunk.size);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
+}
+
+void ChunkRenderer::Update()
+{
+}
+
+void ChunkRenderer::OnChunkLoad(const glm::ivec3 &position)
+{
+    AddChunk(position);
+}
+
+void ChunkRenderer::OnChunkUnload(const glm::ivec3 &position)
+{
+    RemoveChunk(position);
+}
+
+void ChunkRenderer::OnChunkUpdate(const glm::ivec3 &position)
+{
+    RemoveChunk(position);
+    AddChunk(position);
+}
+
+GPUChunk::GPUChunk(glm::ivec3 position, World &w)
+{
+    std::vector<ChunkBufferItem> buffer;
+    Chunk &chunk = w.GetChunk(position);
+
+    for (int i = 0; i < CHUNK_VOLUME; i++)
+    {
+        uint8_t block = chunk.GetBlocks()[i];
+        BlockData &block_data = BlockManager::GetBlockData(block);
+        if (block_data.type == BlockType::Empty)
+        {
+            continue;
+        }
+
+        glm::uvec3 pos;
+        pos.x = deinterleaveBits(i, 2);
+        pos.y = deinterleaveBits(i, 1);
+        pos.z = deinterleaveBits(i, 0);
+
+        constexpr glm::ivec3 directions[] = {
+            glm::ivec3(1, 0, 0),
+            glm::ivec3(-1, 0, 0),
+            glm::ivec3(0, 1, 0),
+            glm::ivec3(0, -1, 0),
+            glm::ivec3(0, 0, 1),
+            glm::ivec3(0, 0, -1),
+        };
+        bool visible = false;
+
+        for (auto &dir : directions) 
+        {
+            glm::ivec3 new_pos = glm::ivec3(pos) + dir;
+            if (new_pos.x < 0 || new_pos.x >= CHUNK_SIZE ||
+                new_pos.y < 0 || new_pos.y >= CHUNK_SIZE ||
+                new_pos.z < 0 || new_pos.z >= CHUNK_SIZE)
+            {
+                // special case for blocks on the edge of the chunk
+                // get chunk in direction of dir
+                glm::ivec3 chunk_pos = position + dir;
+                if (w.ChunkLoaded(chunk_pos))
+                {
+                    // std::cout << "Attempted accessing neighbor chunk" << std::endl;
+                    Chunk &neighbor_chunk = w.GetChunk(chunk_pos);
+                    // std::cout << "Got neighbor chunk" << std::endl;
+                    glm::ivec3 local_pos = glm::ivec3(new_pos);
+                    if (new_pos.x < 0)
+                        local_pos.x += CHUNK_SIZE;
+                    if (new_pos.x >= CHUNK_SIZE)
+                        local_pos.x -= CHUNK_SIZE;
+                    if (new_pos.y < 0)
+                        local_pos.y += CHUNK_SIZE;
+                    if (new_pos.y >= CHUNK_SIZE)
+                        local_pos.y -= CHUNK_SIZE;
+                    if (new_pos.z < 0)
+                        local_pos.z += CHUNK_SIZE;
+                    if (new_pos.z >= CHUNK_SIZE)
+                        local_pos.z -= CHUNK_SIZE;
+
+                    // std::cout << "Local pos: " << local_pos.x << " " << local_pos.y << " " << local_pos.z << std::endl;
+
+                    uint8_t neighbor_block = neighbor_chunk.GetBlock(local_pos.x, local_pos.y, local_pos.z);
+                    // std::cout << "Got neighbor block" << std::endl;
+                    if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
+                    {
+                        // std::cout << "Neighbor block is empty" << std::endl;
+                        // std::cout << "visible due to neighbor block" << std::endl;
+                        visible = true;
+                        break;
+                    }
+                    // std::cout << "Neighbor block is not empty" << std::endl;
+                }
+            }
+            else
+            {
+                // std::cout << "Checked neighboring chunk" << std::endl;
+                uint8_t neighbor_block = chunk.GetBlock(new_pos.x, new_pos.y, new_pos.z);
+
+                if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
+                {
+                    // std::cout << new_pos.x << " " << new_pos.y << " " << new_pos.z << std::endl;
+                    // std::cout << "visible due to neighbor block" << std::endl;
+                    visible = true;
+                    break;
+                }
+            }
+        }
+
+        if (!visible)
+        {
+            continue;
+        }
+
+        // std::cout << "Visible block at " << pos.x << " " << pos.y << " " << pos.z << std::endl;
+
+        ChunkBufferItem item;
+        item.position = pos;
+        item.color = block_data.color;
+
+        buffer.push_back(item);
+    }
+
+    size = buffer.size();
+
+    glGenBuffers(1, &vbo);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_STATIC_DRAW);
+    glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+GPUChunk::~GPUChunk()
+{
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
 }

@@ -19,6 +19,8 @@ class ShaderProgram {
         void SetUniformBlock(const std::string &block_name, GLuint binding_point);
 
         void SetUniformIVec3(const std::string &name, const glm::ivec3 &value);
+        void SetUniformFloat(const std::string &name, const float value);
+        void SetUniformUInt(const std::string &name, const uint32_t value);
     private:
         GLuint program = 0;
         std::vector<GLuint> shaders;

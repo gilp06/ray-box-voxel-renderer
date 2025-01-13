@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
 set(CMAKE_CXX_STANDARD 17)
-
 project(voxel_terrain)
 
 include(FetchContent)
@@ -45,8 +44,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(json)
 
 add_custom_target(shaders
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/resources
+        # COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/$<CONFIG>/${CMAKE_BUILD_TYPE}/resources
         COMMENT "copying ${CMAKE_SOURCE_DIR}/resources to ${CMAKE_BINARY_DIR}/VERSION/resources"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         )
