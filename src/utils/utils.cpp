@@ -1,5 +1,7 @@
 #include "utils.hpp"
 #include <iostream>
+#include <queue>
+#include <set>
 
 std::vector<std::string> GetFilesInDirectory(const std::string &directory)
 {
@@ -80,6 +82,7 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
 		case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
 		case GL_DEBUG_SOURCE_OTHER: return "OTHER";
+        default: return "UNKNOWN";
 		}
 	}();
 
@@ -93,6 +96,7 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
 		case GL_DEBUG_TYPE_MARKER: return "MARKER";
 		case GL_DEBUG_TYPE_OTHER: return "OTHER";
+        default: return "UNKNOWN";
 		}
 	}();
 
@@ -102,7 +106,55 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		case GL_DEBUG_SEVERITY_LOW: return "LOW";
 		case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
 		case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
+        default: return "UNKNOWN";
 		}
 	}();
 	std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
+}
+
+void test_loop(int max_distance)
+{
+
+    // get all positions within the cube centered at (0,0,0) and expanding in each direction by max_distance
+    // preferably in a spiral pattern with the center being (0,0,0) and no duplicates
+    // print the positions in the order they are visited
+
+
+    int total = 0;
+    std::set<std::tuple<int, int, int>> visited;
+    std::queue<std::tuple<int, int, int>> to_visit;
+    to_visit.push({0, 0, 0});
+
+    while (!to_visit.empty())
+    {
+        auto [x, y, z] = to_visit.front();
+        to_visit.pop();
+
+        if (visited.count({x, y, z}) > 0)
+        {
+            continue;
+        }
+
+        visited.insert({x, y, z});
+        total++;
+        std::cout << "(" << x << ", " << y << ", " << z << ")\n";
+
+        if (std::abs(x) < max_distance)
+        {
+            to_visit.push({x + 1, y, z});
+            to_visit.push({x - 1, y, z});
+        }
+        if (std::abs(y) < max_distance)
+        {
+            to_visit.push({x, y + 1, z});
+            to_visit.push({x, y - 1, z});
+        }
+        if (std::abs(z) < max_distance)
+        {
+            to_visit.push({x, y, z + 1});
+            to_visit.push({x, y, z - 1});
+        }
+    }
+
+    std::cout << "Total: " << total << std::endl;
 }
