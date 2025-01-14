@@ -3,7 +3,7 @@
 #include <world/block_type.hpp>
 #include <vector>
 
-constexpr uint8_t CHUNK_SIZE = 32;
+constexpr uint8_t CHUNK_SIZE = 16;
 constexpr uint32_t CHUNK_VOLUME = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
 
 class Chunk

@@ -1,0 +1,5 @@
+{
+    "name": "stone",
+    "block_type": "solid",
+    "color": [112, 112, 112, 255]
+}

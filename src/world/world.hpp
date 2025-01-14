@@ -14,11 +14,12 @@
 #include <functional>
 
 #include <GLFW/glfw3.h>
+#include <FastNoiseLite.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
+constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 8;
 constexpr int32_t CHUNK_DISTANCE = 16;
 
 // using ChunkVariantRef = std::variant<std::reference_wrapper<Chunk>, std::reference_wrapper<CompressedChunk>>;
@@ -27,7 +28,7 @@ class World
 {
 public:
     using ChunkCallback = std::function<void(const glm::ivec3 &)>;
-    World() = default;
+    World();
 
     Chunk &GetChunk(glm::ivec3 position);
     Chunk &NewChunk(glm::ivec3 position);
@@ -45,6 +46,10 @@ public:
     void SubscribeToChunkUpdate(ChunkCallback callback);
 
     void Input(GLFWwindow *window);
+
+    FastNoiseLite noise;
+
+
 
 private:
     std::unordered_map<glm::ivec3, Chunk> active_chunks;

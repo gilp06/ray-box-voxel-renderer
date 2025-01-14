@@ -43,6 +43,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
+
+FetchContent_Declare(
+    fastnoiselite
+    GIT_REPOSITORY https://github.com/Auburn/FastNoiseLite.git
+    GIT_TAG master
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+)
+FetchContent_GetProperties(fastnoiselite)
+if(NOT fastnoiselite_POPULATED)
+    message("Fetching FastNoiseLite")
+    FetchContent_Populate(fastnoiselite)
+endif()
+
 add_custom_target(shaders
         # COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/$<CONFIG>/${CMAKE_BUILD_TYPE}/resources
@@ -67,4 +81,5 @@ add_executable(voxel_terrain ${SOURCES})
 add_dependencies(voxel_terrain shaders)
 target_link_libraries(voxel_terrain PRIVATE glad glfw glm jsoncpp_object)
 target_include_directories(voxel_terrain PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(voxel_terrain PRIVATE ${fastnoiselite_SOURCE_DIR}/Cpp)
 
