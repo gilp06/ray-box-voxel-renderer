@@ -1,5 +1,7 @@
 #include <gfx/chunk_renderer.hpp>
 #include <iostream>
+#include <tracy/Tracy.hpp>
+
 #include "chunk_renderer.hpp"
 
 ChunkRenderer::ChunkRenderer(World &world) : world(world)
@@ -42,12 +44,19 @@ void ChunkRenderer::RemoveChunk(glm::ivec3 position)
     chunks.erase(position);
 }
 
-void ChunkRenderer::Render()
+void ChunkRenderer::Render(Camera &camera)
 {
-
+    glm::mat4 frustum_space = camera.GetProjectionMatrix() * camera.GetViewMatrix();
     for (auto &[position, chunk] : chunks)
     {
         shader->SetUniformIVec3("chunk_pos", position);
+
+        
+
+        if (!within_frustum(glm::vec3(position) * (float)CHUNK_SIZE, frustum_space))
+        {
+            continue;
+        }
         // std::cout << "Rendering chunk at " << position.x << " " << position.y << " " << position.z << std::endl;
         // std::cout << "Chunk size: " << chunk.size << std::endl;
         glBindVertexArray(chunk.vao);
@@ -80,6 +89,7 @@ void ChunkRenderer::OnChunkUpdate(const glm::ivec3 &position)
 
 GPUChunk::GPUChunk(glm::ivec3 position, World &w)
 {
+    ZoneScoped;
     std::vector<ChunkBufferItem> buffer;
     Chunk &chunk = w.GetChunk(position);
 
@@ -107,7 +117,7 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
         };
         bool visible = false;
 
-        for (auto &dir : directions) 
+        for (auto &dir : directions)
         {
             glm::ivec3 new_pos = glm::ivec3(pos) + dir;
             if (new_pos.x < 0 || new_pos.x >= CHUNK_SIZE ||
@@ -181,16 +191,28 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
 
     size = buffer.size();
 
-    glGenBuffers(1, &vbo);
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_STATIC_DRAW);
-    glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glGenBuffers(1, &vbo);
+    // glGenVertexArrays(1, &vao);
+    // glBindVertexArray(vao);
+    // glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_STATIC_DRAW);
+    // glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
+    // glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
+    // glEnableVertexAttribArray(0);
+    // glEnableVertexAttribArray(1);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindVertexArray(0);
+
+    glCreateBuffers(1, &vbo);
+    glCreateVertexArrays(1, &vao);
+    glNamedBufferStorage(vbo, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_DYNAMIC_STORAGE_BIT);
+    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(ChunkBufferItem));
+    glVertexArrayAttribIFormat(vao, 0, 3, GL_UNSIGNED_INT, offsetof(ChunkBufferItem, position));
+    glVertexArrayAttribIFormat(vao, 1, 1, GL_UNSIGNED_INT, offsetof(ChunkBufferItem, color));
+    glEnableVertexArrayAttrib(vao, 0);
+    glEnableVertexArrayAttrib(vao, 1);
+    glVertexArrayAttribBinding(vao, 0, 0);
+    glVertexArrayAttribBinding(vao, 1, 0);
     glBindVertexArray(0);
 }
 

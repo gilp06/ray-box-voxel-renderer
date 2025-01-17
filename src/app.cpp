@@ -6,6 +6,8 @@
 #include <chrono>
 #include <random>
 #include <utils/utils.hpp>
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
 
 // callback handlers
 
@@ -90,10 +92,11 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     glDepthFunc(GL_LESS);
 
 #ifdef _DEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(message_callback, 0);
-#endif
+    // glEnable(GL_DEBUG_OUTPUT);
+    // glDebugMessageCallback(message_callback, 0);
 
+#endif
+    TracyGpuContext;
     // // uniform buffer initialization
 
     GLuint ubo;
@@ -148,6 +151,7 @@ void AppState::Input()
 
 void AppState::Update()
 {
+    ZoneScoped;
     camera.UpdateAspectRatio(width / (float)height);
     glm::mat4 proj = camera.GetProjectionMatrix();
     glm::mat4 view = camera.GetViewMatrix();
@@ -192,16 +196,19 @@ void AppState::Update()
 
 void AppState::Render()
 {
+    ZoneScoped;
+    TracyGpuZone("Render");
     // glBindVertexArray(vao);
     // shader->Use();
     // glDrawArrays(GL_POINTS, 0, 3);
-    chunk_renderer->Render();
+    chunk_renderer->Render(this->camera);
 }
 
 void AppState::Run()
 {
     while (!glfwWindowShouldClose(window))
     {
+        FrameMarkStart("Frame");
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwPollEvents();
@@ -211,9 +218,12 @@ void AppState::Run()
         Render();
 
         glfwSwapBuffers(window);
+        TracyGpuCollect;
+
         float current_frame = glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
+        FrameMarkEnd("Frame");
     }
 
     glfwDestroyWindow(window);

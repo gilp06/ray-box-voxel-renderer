@@ -2,6 +2,8 @@
 #include <iostream>
 #include <queue>
 #include <set>
+#include <tracy/Tracy.hpp>
+
 
 std::vector<std::string> GetFilesInDirectory(const std::string &directory)
 {
@@ -110,6 +112,40 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		}
 	}();
 	std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
+}
+
+bool within_frustum(glm::vec3 position, glm::mat4 frustum_space)
+{
+    
+    ZoneScoped;
+    // check if bbox with (0,0,0) as position and (16,16,16) as size is within frustum
+    // get all 6 frustum planes
+    // check if all 8 points of the bbox are within the frustum
+    // if any point is within the frustum return true
+
+    glm::vec3 points[8] = {
+        glm::vec3(0, 0, 0),
+        glm::vec3(16, 0, 0),
+        glm::vec3(0, 16, 0),
+        glm::vec3(16, 16, 0),
+        glm::vec3(0, 0, 16),
+        glm::vec3(16, 0, 16),
+        glm::vec3(0, 16, 16),
+        glm::vec3(16, 16, 16),
+    };
+    int count = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        glm::vec4 point = frustum_space * glm::vec4(points[i] + position, 1.0f);
+        point /= point.w;
+        if (point.x < -1 || point.x > 1 || point.y < -1 || point.y > 1 || point.z < -1 || point.z > 1)
+        {
+            count++;
+        }
+    }
+
+    return count != 8;
+
 }
 
 void test_loop(int max_distance)

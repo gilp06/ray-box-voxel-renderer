@@ -10,6 +10,8 @@
 #include <deque>
 #include <map>
 
+#include <gfx/cam.hpp>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
@@ -40,7 +42,7 @@ public:
 
     void AddChunk(glm::ivec3 position);
     void RemoveChunk(glm::ivec3 position);
-    void Render();
+    void Render(Camera& camera);
     void Update();
 
     void OnChunkLoad(const glm::ivec3 &position);

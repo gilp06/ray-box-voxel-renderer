@@ -5,6 +5,7 @@ project(voxel_terrain)
 
 include(FetchContent)
 
+
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -57,6 +58,15 @@ if(NOT fastnoiselite_POPULATED)
     FetchContent_Populate(fastnoiselite)
 endif()
 
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG v0.11.1
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(tracy)
+
 add_custom_target(shaders
         # COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/$<CONFIG>/${CMAKE_BUILD_TYPE}/resources
@@ -79,7 +89,7 @@ set(SOURCES
 
 add_executable(voxel_terrain ${SOURCES})
 add_dependencies(voxel_terrain shaders)
-target_link_libraries(voxel_terrain PRIVATE glad glfw glm jsoncpp_object)
+target_link_libraries(voxel_terrain PRIVATE glad glfw glm jsoncpp_object TracyClient)
 target_include_directories(voxel_terrain PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(voxel_terrain PRIVATE ${fastnoiselite_SOURCE_DIR}/Cpp)
 
