@@ -2,8 +2,6 @@
 #include <iostream>
 #include <tracy/Tracy.hpp>
 
-#include "chunk_renderer.hpp"
-
 ChunkRenderer::ChunkRenderer(World &world) : world(world)
 {
     shader = new ShaderProgram("resources/shaders/chunk.vert.glsl", "resources/shaders/chunk.frag.glsl");
@@ -41,27 +39,28 @@ void ChunkRenderer::RemoveChunk(glm::ivec3 position)
         return;
     }
 
-    chunks.erase(position);
+    chunks.extract(position);
 }
 
 void ChunkRenderer::Render(Camera &camera)
 {
     glm::mat4 frustum_space = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-    for (auto &[position, chunk] : chunks)
+    for (auto& data : chunks)
     {
-        shader->SetUniformIVec3("chunk_pos", position);
+
+        shader->SetUniformIVec3("chunk_pos", data.first);
 
         
 
-        if (!within_frustum(glm::vec3(position) * (float)CHUNK_SIZE, frustum_space))
+        if (!within_frustum(glm::vec3(data.first) * (float)CHUNK_SIZE, frustum_space))
         {
             continue;
         }
         // std::cout << "Rendering chunk at " << position.x << " " << position.y << " " << position.z << std::endl;
         // std::cout << "Chunk size: " << chunk.size << std::endl;
-        glBindVertexArray(chunk.vao);
-        glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
-        glDrawArrays(GL_POINTS, 0, chunk.size);
+        glBindVertexArray(data.second.vao);
+        glBindBuffer(GL_ARRAY_BUFFER, data.second.vbo);
+        glDrawArrays(GL_POINTS, 0, data.second.size);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }

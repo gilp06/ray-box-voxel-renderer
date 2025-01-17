@@ -11,7 +11,6 @@
 #include <map>
 
 #include <gfx/cam.hpp>
-
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 

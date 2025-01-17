@@ -21,7 +21,7 @@
 #include <glm/gtx/hash.hpp>
 
 constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
-constexpr int32_t CHUNK_DISTANCE = 32;
+constexpr int32_t CHUNK_DISTANCE = 16;
 
 // using ChunkVariantRef = std::variant<std::reference_wrapper<Chunk>, std::reference_wrapper<CompressedChunk>>;
 

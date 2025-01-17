@@ -89,7 +89,7 @@ set(SOURCES
 
 add_executable(voxel_terrain ${SOURCES})
 add_dependencies(voxel_terrain shaders)
-target_link_libraries(voxel_terrain PRIVATE glad glfw glm jsoncpp_object TracyClient)
+target_link_libraries(voxel_terrain PRIVATE glad glfw glm jsoncpp_object TracyClient unordered_dense)
 target_include_directories(voxel_terrain PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(voxel_terrain PRIVATE ${fastnoiselite_SOURCE_DIR}/Cpp)
 
