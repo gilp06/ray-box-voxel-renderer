@@ -5,20 +5,23 @@
 // chunks are defined in world/chunk.hpp
 
 #include <glm/glm.hpp>
-#include <unordered_map>
-#include <unordered_set>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 #include <world/chunk.hpp>
 #include <variant>
 #include <optional>
 #include <deque>
+
+#include <unordered_set>
+#include <unordered_map>
 
 #include <functional>
 
 #include <GLFW/glfw3.h>
 #include <FastNoiseLite.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+// #include <ankerl/unordered_dense.h>
+// #include <utils/custom_hash.hpp>
 
 constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
 constexpr int32_t CHUNK_DISTANCE = 16;

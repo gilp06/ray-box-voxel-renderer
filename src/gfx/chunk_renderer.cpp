@@ -29,7 +29,7 @@ void ChunkRenderer::AddChunk(glm::ivec3 position)
         return;
     }
 
-    chunks.try_emplace(position, position, world);
+    chunks.try_emplace(position, std::make_shared<GPUChunk>(position, world));
 }
 
 void ChunkRenderer::RemoveChunk(glm::ivec3 position)
@@ -58,9 +58,9 @@ void ChunkRenderer::Render(Camera &camera)
         }
         // std::cout << "Rendering chunk at " << position.x << " " << position.y << " " << position.z << std::endl;
         // std::cout << "Chunk size: " << chunk.size << std::endl;
-        glBindVertexArray(data.second.vao);
-        glBindBuffer(GL_ARRAY_BUFFER, data.second.vbo);
-        glDrawArrays(GL_POINTS, 0, data.second.size);
+        glBindVertexArray(data.second.get()->vao);
+        glBindBuffer(GL_ARRAY_BUFFER, data.second.get()->vbo);
+        glDrawArrays(GL_POINTS, 0, data.second.get()->size);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }

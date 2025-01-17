@@ -8,11 +8,16 @@
 #include <glad/gl.h>
 #include <world/world.hpp>
 #include <deque>
+#include <memory>
 #include <map>
 
 #include <gfx/cam.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+
+#include <ankerl/unordered_dense.h>
+#include <utils/custom_hash.hpp>
+
+// #define GLM_ENABLE_EXPERIMENTAL
+// #include <glm/gtx/hash.hpp>
 
 struct ChunkBufferItem
 {
@@ -53,6 +58,6 @@ private:
     ShaderProgram *shader = nullptr;
 
     // loaded chunks
-    std::unordered_map<glm::ivec3, GPUChunk> chunks;
+    ankerl::unordered_dense::map<glm::ivec3, std::shared_ptr<GPUChunk>> chunks;
     std::deque<glm::ivec3> chunks_to_gen_mesh;
 };
