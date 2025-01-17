@@ -10,6 +10,7 @@ class Chunk
 {
 public:
     Chunk();
+    ~Chunk();
 
     void SetBlock(uint16_t x, uint16_t y, uint16_t z, uint8_t block_manager_index);
     void SetBlock(uint16_t x, uint16_t y, uint16_t z, const std::string &block_name);

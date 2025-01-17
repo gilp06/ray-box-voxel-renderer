@@ -1,6 +1,7 @@
 #include <world/chunk.hpp>
 #include <vector>
 #include <iostream>
+#include "chunk.hpp"
 
 Chunk::Chunk()
 {
@@ -10,6 +11,12 @@ Chunk::Chunk()
         blocks[i] = 0;
     }
 }
+
+Chunk::~Chunk()
+{
+    
+}
+
 
 void Chunk::SetBlock(uint16_t x, uint16_t y, uint16_t z, uint8_t block_manager_index)
 {

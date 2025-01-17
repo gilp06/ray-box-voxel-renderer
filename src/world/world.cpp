@@ -12,7 +12,7 @@ World::World()
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 }
 
-Chunk &World::GetChunk(glm::ivec3 position)
+std::shared_ptr<Chunk> World::GetChunk(glm::ivec3 position)
 {
 
     auto active_chunk = active_chunks.find(position);
@@ -30,7 +30,7 @@ Chunk &World::GetChunk(glm::ivec3 position)
     throw std::runtime_error("Chunk not found");
 }
 
-Chunk &World::NewChunk(glm::ivec3 position)
+std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
 {
     ZoneScoped;
 
@@ -40,7 +40,7 @@ Chunk &World::NewChunk(glm::ivec3 position)
     }
     // std::cout << "Loading new chunk!" << std::endl;
     // create new chunk
-    Chunk chunk;
+    auto chunk = std::make_shared<Chunk>();
     // set all blocks to air
 
     // base height
@@ -60,11 +60,11 @@ Chunk &World::NewChunk(glm::ivec3 position)
             {
                 if(rand() % 100 < 10)
                 {
-                    chunk.SetBlock(x, y, z, BlockManager::GetBlockIndex("grass"));
+                    chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("grass"));
                 }
                 else
                 {
-                    chunk.SetBlock(x, y, z, BlockManager::GetBlockIndex("air"));
+                    chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("air"));
                 }
             }
         }

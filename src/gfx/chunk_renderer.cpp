@@ -90,11 +90,12 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
 {
     ZoneScoped;
     std::vector<ChunkBufferItem> buffer;
-    Chunk &chunk = w.GetChunk(position);
+    buffer.reserve(4096);
+    auto chunk = w.GetChunk(position);
 
     for (int i = 0; i < CHUNK_VOLUME; i++)
     {
-        uint8_t block = chunk.GetBlocks()[i];
+        uint8_t block = chunk->GetBlocks()[i];
         BlockData &block_data = BlockManager::GetBlockData(block);
         if (block_data.type == BlockType::Empty)
         {
@@ -129,7 +130,7 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
                 if (w.ChunkLoaded(chunk_pos))
                 {
                     // std::cout << "Attempted accessing neighbor chunk" << std::endl;
-                    Chunk &neighbor_chunk = w.GetChunk(chunk_pos);
+                    auto neighbor_chunk = w.GetChunk(chunk_pos);
                     // std::cout << "Got neighbor chunk" << std::endl;
                     glm::ivec3 local_pos = glm::ivec3(new_pos);
                     if (new_pos.x < 0)
@@ -147,7 +148,7 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
 
                     // std::cout << "Local pos: " << local_pos.x << " " << local_pos.y << " " << local_pos.z << std::endl;
 
-                    uint8_t neighbor_block = neighbor_chunk.GetBlock(local_pos.x, local_pos.y, local_pos.z);
+                    uint8_t neighbor_block = neighbor_chunk->GetBlock(local_pos.x, local_pos.y, local_pos.z);
                     // std::cout << "Got neighbor block" << std::endl;
                     if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
                     {
@@ -162,7 +163,7 @@ GPUChunk::GPUChunk(glm::ivec3 position, World &w)
             else
             {
                 // std::cout << "Checked neighboring chunk" << std::endl;
-                uint8_t neighbor_block = chunk.GetBlock(new_pos.x, new_pos.y, new_pos.z);
+                uint8_t neighbor_block = chunk->GetBlock(new_pos.x, new_pos.y, new_pos.z);
 
                 if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
                 {

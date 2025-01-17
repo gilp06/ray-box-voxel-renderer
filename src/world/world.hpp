@@ -5,8 +5,12 @@
 // chunks are defined in world/chunk.hpp
 
 #include <glm/glm.hpp>
+#include <ankerl/unordered_dense.h>
+// #include <utils/custom_hash.hpp>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
+
 #include <world/chunk.hpp>
 #include <variant>
 #include <optional>
@@ -14,14 +18,15 @@
 
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 
 #include <functional>
 
 #include <GLFW/glfw3.h>
 #include <FastNoiseLite.h>
 
-// #include <ankerl/unordered_dense.h>
-// #include <utils/custom_hash.hpp>
+#include <ankerl/unordered_dense.h>
+#include <utils/custom_hash.hpp>
 
 constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
 constexpr int32_t CHUNK_DISTANCE = 16;
@@ -34,8 +39,8 @@ public:
     using ChunkCallback = std::function<void(const glm::ivec3 &)>;
     World();
 
-    Chunk &GetChunk(glm::ivec3 position);
-    Chunk &NewChunk(glm::ivec3 position);
+    std::shared_ptr<Chunk> GetChunk(glm::ivec3 position);
+    std::shared_ptr<Chunk> NewChunk(glm::ivec3 position);
     void UnloadChunk(glm::ivec3 position);
     bool ChunkLoaded(glm::ivec3 position);
 
@@ -56,7 +61,7 @@ public:
 
 
 private:
-    std::unordered_map<glm::ivec3, Chunk> active_chunks;
+    ankerl::unordered_dense::map<glm::ivec3, std::shared_ptr<Chunk>> active_chunks;
     std::deque<glm::ivec3> chunks_to_load;
     std::deque<glm::ivec3> chunks_to_unload;
     std::unordered_set<glm::ivec3> chunks_to_load_set;
