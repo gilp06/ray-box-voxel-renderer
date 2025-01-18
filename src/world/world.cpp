@@ -26,7 +26,7 @@ std::shared_ptr<Chunk> World::GetChunk(glm::ivec3 position)
     // {
     //     return inactive_chunk->second;
     // }
-
+    std::cout << "Chunk not found" << std::endl;
     throw std::runtime_error("Chunk not found");
 }
 
@@ -69,6 +69,8 @@ std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
             }
         }
     }
+
+    // chunk->SetBlock(0, 0, 0, BlockManager::GetBlockIndex("grass"));
 
     // insert into active chunks
     // std::cout << "Loaded chunk at " << position.x << " " << position.y << " " << position.z << std::endl;

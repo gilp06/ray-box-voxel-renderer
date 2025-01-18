@@ -10,7 +10,7 @@ float random(uint seed) {
 }
 
 
-layout(location = 0) in uvec3 aPos;
+layout(location = 0) in ivec3 aPos;
 layout(location = 1) in uint aColor;
 
 layout(std140) uniform ubo {
@@ -21,8 +21,6 @@ layout(std140) uniform ubo {
     vec4 uViewport;
 };
 
-uniform ivec3 chunk_pos;
-uniform uint CHUNK_SIZE = 32;
 
 
 out VertexOutput vertexOutput;
@@ -43,8 +41,8 @@ vec4 unpackColor(in uint color) {
 };
 
 void main() {
-    vertexOutput.position = view_pos * (vec4((int(CHUNK_SIZE) * chunk_pos + ivec3(aPos)),1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
-    float color_shift = random(gl_VertexID + uint(chunk_pos.x) + uint(chunk_pos.y) + uint(chunk_pos.z));
+    vertexOutput.position = view_pos * (vec4(aPos,1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
+    float color_shift = random(abs(aPos.x) ^ abs(aPos.y) ^ abs(aPos.z));
     // clamp to 0.1 - 0.2
     color_shift = -0.15 + color_shift * 0.3;
 

@@ -91,6 +91,7 @@ set(SOURCES
     src/gfx/cam.cpp
     src/gfx/shader.cpp
     src/gfx/chunk_renderer.cpp
+    src/gfx/shared_buffer.cpp
     src/world/chunk.cpp
     src/world/block_type.cpp
     src/world/world.cpp

@@ -92,9 +92,8 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     glDepthFunc(GL_LESS);
 
 #ifdef _DEBUG
-    // glEnable(GL_DEBUG_OUTPUT);
-    // glDebugMessageCallback(message_callback, 0);
-
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(message_callback, 0);
 #endif
     TracyGpuContext;
     // // uniform buffer initialization

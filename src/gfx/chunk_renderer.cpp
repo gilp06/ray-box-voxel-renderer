@@ -1,13 +1,56 @@
-#include <gfx/chunk_renderer.hpp>
+#include "chunk_renderer.hpp"
+
 #include <iostream>
 #include <tracy/Tracy.hpp>
 
+GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, std::shared_ptr<Chunk> chunk)
+{
+    this->position = position;
+
+    std::vector<ChunkBufferItem> data;
+    for (int i = 0; i < CHUNK_VOLUME; i++)
+    {
+        if (chunk->GetBlocks()[i] == BlockManager::GetBlockIndex("air"))
+        {
+            continue;
+        }
+        glm::ivec3 world_pos = (position * (int)CHUNK_SIZE) + glm::ivec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
+        // std::cout << world_pos.x << " " << world_pos.y << " " << world_pos.z << std::endl;
+        data.push_back({world_pos, BlockManager::GetBlockData(chunk->GetBlocks()[i]).color});
+
+        // data.push_back({world_pos, BlockManager::GetBlockData();
+    }
+
+    block_count = data.size();
+    // std::cout << "Block count: " << block_count << std::endl;
+    chunk_handle = buffer->RequestNewChunkHandle();
+    buffer->UpdateChunk(chunk_handle, data);
+
+    indirect_command.first = chunk_handle * CHUNK_VOLUME;
+    indirect_command.count = block_count;
+    indirect_command.instanceCount = 1;
+    indirect_command.baseInstance = 0;
+
+    this->buffer = buffer;
+}
+
+GPUChunk::~GPUChunk()
+{
+    // std::cout << "Free chunk handle" << std::endl;
+    buffer->FreeChunkHandle(chunk_handle);
+    // std::cout << "Freed chunk handle" << std::endl;
+}
+
 ChunkRenderer::ChunkRenderer(World &world) : world(world)
 {
+
+    // bbox size
+    unsigned long long preallocated_size = 2 * (2 * CHUNK_DISTANCE + 1) * (2 * CHUNK_DISTANCE + 1) * WORLD_HEIGHT_IN_CHUNKS;
+    buffer = std::make_shared<SharedBuffer>(preallocated_size, CHUNK_VOLUME);
+
     shader = new ShaderProgram("resources/shaders/chunk.vert.glsl", "resources/shaders/chunk.frag.glsl");
     shader->Use();
     shader->SetUniformBlock("ubo", 0);
-    shader->SetUniformUInt("CHUNK_SIZE", (uint32_t)CHUNK_SIZE);
 
     world.SubscribeToChunkLoad([this](const glm::ivec3 &position)
                                { this->OnChunkLoad(position); });
@@ -15,55 +58,56 @@ ChunkRenderer::ChunkRenderer(World &world) : world(world)
                                  { this->OnChunkUnload(position); });
     world.SubscribeToChunkUpdate([this](const glm::ivec3 &position)
                                  { this->OnChunkUpdate(position); });
-}
 
-ChunkRenderer::~ChunkRenderer()
-{
-    delete shader;
+    glCreateBuffers(1, &indirect_buffer);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer);
+    glNamedBufferData(indirect_buffer, preallocated_size * sizeof(DrawArraysIndirectCommand), nullptr, GL_STATIC_DRAW);
+    indirect_commands.reserve(preallocated_size);
 }
 
 void ChunkRenderer::AddChunk(glm::ivec3 position)
 {
-    if (chunks.find(position) != chunks.end())
+    auto chunk = world.GetChunk(position);
+    if (chunk == nullptr)
     {
         return;
     }
-
-    chunks.try_emplace(position, std::make_shared<GPUChunk>(position, world));
+    auto gpu_chunk = std::make_shared<GPUChunk>(buffer, position, chunk);
+    chunks.try_emplace(position, gpu_chunk);
 }
 
 void ChunkRenderer::RemoveChunk(glm::ivec3 position)
 {
-    if (chunks.find(position) == chunks.end())
-    {
-        return;
-    }
-
-    chunks.extract(position);
+    // std::cout << "Remove chunk" << std::endl;
+    chunks.erase(position);
+    // std::cout << "Removed chunk" << std::endl;
 }
 
 void ChunkRenderer::Render(Camera &camera)
 {
+    ZoneScoped;
+    glBindVertexArray(buffer->vao);
     glm::mat4 frustum_space = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-    for (auto& data : chunks)
+    std::vector<DrawArraysIndirectCommand> indirect_commands;
+    for (auto &chunk : chunks)
     {
-
-        shader->SetUniformIVec3("chunk_pos", data.first);
-
-        
-
-        if (!within_frustum(glm::vec3(data.first) * (float)CHUNK_SIZE, frustum_space))
-        {
-            continue;
-        }
-        // std::cout << "Rendering chunk at " << position.x << " " << position.y << " " << position.z << std::endl;
-        // std::cout << "Chunk size: " << chunk.size << std::endl;
-        glBindVertexArray(data.second.get()->vao);
-        glBindBuffer(GL_ARRAY_BUFFER, data.second.get()->vbo);
-        glDrawArrays(GL_POINTS, 0, data.second.get()->size);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        indirect_commands.push_back(chunk.second->indirect_command);
     }
+    // std::cout << "Try draw " << indirect_commands.size() << " chunks" << std::endl;
+    if (indirect_commands.size() == 0)
+    {
+        indirect_commands.clear();
+        return;
+    }
+
+    // std::cout << "Draw " << indirect_commands.size() << " chunks" << std::endl;
+
+    // gen data for indirect draw
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer);
+    glNamedBufferSubData(indirect_buffer, 0, indirect_commands.size() * sizeof(DrawArraysIndirectCommand), indirect_commands.data());
+    glMultiDrawArraysIndirect(GL_POINTS, 0, indirect_commands.size(), 0);
+
+    indirect_commands.clear();
 }
 
 void ChunkRenderer::Update()
@@ -86,138 +130,7 @@ void ChunkRenderer::OnChunkUpdate(const glm::ivec3 &position)
     AddChunk(position);
 }
 
-GPUChunk::GPUChunk(glm::ivec3 position, World &w)
+ChunkRenderer::~ChunkRenderer()
 {
-    ZoneScoped;
-    std::vector<ChunkBufferItem> buffer;
-    buffer.reserve(4096);
-    auto chunk = w.GetChunk(position);
-
-    for (int i = 0; i < CHUNK_VOLUME; i++)
-    {
-        uint8_t block = chunk->GetBlocks()[i];
-        BlockData &block_data = BlockManager::GetBlockData(block);
-        if (block_data.type == BlockType::Empty)
-        {
-            continue;
-        }
-
-        glm::uvec3 pos;
-        pos.x = deinterleaveBits(i, 2);
-        pos.y = deinterleaveBits(i, 1);
-        pos.z = deinterleaveBits(i, 0);
-
-        constexpr glm::ivec3 directions[] = {
-            glm::ivec3(1, 0, 0),
-            glm::ivec3(-1, 0, 0),
-            glm::ivec3(0, 1, 0),
-            glm::ivec3(0, -1, 0),
-            glm::ivec3(0, 0, 1),
-            glm::ivec3(0, 0, -1),
-        };
-        bool visible = false;
-
-        for (auto &dir : directions)
-        {
-            glm::ivec3 new_pos = glm::ivec3(pos) + dir;
-            if (new_pos.x < 0 || new_pos.x >= CHUNK_SIZE ||
-                new_pos.y < 0 || new_pos.y >= CHUNK_SIZE ||
-                new_pos.z < 0 || new_pos.z >= CHUNK_SIZE)
-            {
-                // special case for blocks on the edge of the chunk
-                // get chunk in direction of dir
-                glm::ivec3 chunk_pos = position + dir;
-                if (w.ChunkLoaded(chunk_pos))
-                {
-                    // std::cout << "Attempted accessing neighbor chunk" << std::endl;
-                    auto neighbor_chunk = w.GetChunk(chunk_pos);
-                    // std::cout << "Got neighbor chunk" << std::endl;
-                    glm::ivec3 local_pos = glm::ivec3(new_pos);
-                    if (new_pos.x < 0)
-                        local_pos.x += CHUNK_SIZE;
-                    if (new_pos.x >= CHUNK_SIZE)
-                        local_pos.x -= CHUNK_SIZE;
-                    if (new_pos.y < 0)
-                        local_pos.y += CHUNK_SIZE;
-                    if (new_pos.y >= CHUNK_SIZE)
-                        local_pos.y -= CHUNK_SIZE;
-                    if (new_pos.z < 0)
-                        local_pos.z += CHUNK_SIZE;
-                    if (new_pos.z >= CHUNK_SIZE)
-                        local_pos.z -= CHUNK_SIZE;
-
-                    // std::cout << "Local pos: " << local_pos.x << " " << local_pos.y << " " << local_pos.z << std::endl;
-
-                    uint8_t neighbor_block = neighbor_chunk->GetBlock(local_pos.x, local_pos.y, local_pos.z);
-                    // std::cout << "Got neighbor block" << std::endl;
-                    if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
-                    {
-                        // std::cout << "Neighbor block is empty" << std::endl;
-                        // std::cout << "visible due to neighbor block" << std::endl;
-                        visible = true;
-                        break;
-                    }
-                    // std::cout << "Neighbor block is not empty" << std::endl;
-                }
-            }
-            else
-            {
-                // std::cout << "Checked neighboring chunk" << std::endl;
-                uint8_t neighbor_block = chunk->GetBlock(new_pos.x, new_pos.y, new_pos.z);
-
-                if (BlockManager::GetBlockData(neighbor_block).type == BlockType::Empty)
-                {
-                    // std::cout << new_pos.x << " " << new_pos.y << " " << new_pos.z << std::endl;
-                    // std::cout << "visible due to neighbor block" << std::endl;
-                    visible = true;
-                    break;
-                }
-            }
-        }
-
-        if (!visible)
-        {
-            continue;
-        }
-
-        // std::cout << "Visible block at " << pos.x << " " << pos.y << " " << pos.z << std::endl;
-
-        ChunkBufferItem item;
-        item.position = pos;
-        item.color = block_data.color;
-
-        buffer.push_back(item);
-    }
-
-    size = buffer.size();
-
-    // glGenBuffers(1, &vbo);
-    // glGenVertexArrays(1, &vao);
-    // glBindVertexArray(vao);
-    // glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // glBufferData(GL_ARRAY_BUFFER, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_STATIC_DRAW);
-    // glVertexAttribIPointer(0, 3, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, position));
-    // glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ChunkBufferItem), (void *)offsetof(ChunkBufferItem, color));
-    // glEnableVertexAttribArray(0);
-    // glEnableVertexAttribArray(1);
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
-    // glBindVertexArray(0);
-
-    glCreateBuffers(1, &vbo);
-    glCreateVertexArrays(1, &vao);
-    glNamedBufferStorage(vbo, buffer.size() * sizeof(ChunkBufferItem), buffer.data(), GL_DYNAMIC_STORAGE_BIT);
-    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(ChunkBufferItem));
-    glVertexArrayAttribIFormat(vao, 0, 3, GL_UNSIGNED_INT, offsetof(ChunkBufferItem, position));
-    glVertexArrayAttribIFormat(vao, 1, 1, GL_UNSIGNED_INT, offsetof(ChunkBufferItem, color));
-    glEnableVertexArrayAttrib(vao, 0);
-    glEnableVertexArrayAttrib(vao, 1);
-    glVertexArrayAttribBinding(vao, 0, 0);
-    glVertexArrayAttribBinding(vao, 1, 0);
-    glBindVertexArray(0);
-}
-
-GPUChunk::~GPUChunk()
-{
-    glDeleteBuffers(1, &vbo);
-    glDeleteVertexArrays(1, &vao);
+    delete shader;
 }
