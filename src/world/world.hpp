@@ -56,9 +56,6 @@ public:
 
     void Input(GLFWwindow *window);
 
-    FastNoiseLite noise;
-
-
 
 private:
     ankerl::unordered_dense::segmented_map<glm::ivec3, std::shared_ptr<Chunk>> active_chunks;

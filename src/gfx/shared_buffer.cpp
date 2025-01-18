@@ -4,13 +4,17 @@
 
 SharedBuffer::SharedBuffer(unsigned long long preallocated_size, unsigned long long chunk_size)
 {
+    int max_sparse_size = 0;
+    glGetIntegerv(GL_SPARSE_BUFFER_PAGE_SIZE_ARB, &max_sparse_size);
+    std::cout << "Max sparse size: " << max_sparse_size << std::endl;
     this->preallocated_size = preallocated_size;
     this->chunk_size = chunk_size;
     unsigned long long full_size = preallocated_size * chunk_size * sizeof(ChunkBufferItem);
     std::cout << "Full size: " << full_size << std::endl;
 
     glCreateBuffers(1, &buffer);
-    glNamedBufferData(buffer, full_size, nullptr, GL_DYNAMIC_DRAW);
+    // glNamedBufferData(buffer, full_size, nullptr, GL_STREAM_DRAW);
+    glNamedBufferStorage(buffer, full_size, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_SPARSE_STORAGE_BIT_ARB);
     glCreateVertexArrays(1, &vao);
 
     // configure vao
@@ -27,7 +31,7 @@ SharedBuffer::SharedBuffer(unsigned long long preallocated_size, unsigned long l
 
     glBindVertexArray(0);
 
-    for(long i = preallocated_size-1; i >= 0; i--)
+    for (long i = preallocated_size - 1; i >= 0; i--)
     {
         free_chunks.push_back(i);
     }
@@ -36,7 +40,7 @@ SharedBuffer::SharedBuffer(unsigned long long preallocated_size, unsigned long l
 unsigned long long SharedBuffer::RequestNewChunkHandle()
 {
     // get the first free chunk
-    if(free_chunks.empty())
+    if (free_chunks.empty())
     {
         std::cerr << "No more free chunks" << std::endl;
         return -1;
@@ -46,9 +50,10 @@ unsigned long long SharedBuffer::RequestNewChunkHandle()
     return chunk;
 }
 
-void SharedBuffer::FreeChunkHandle(unsigned long long handle)
+void SharedBuffer::FreeChunkHandle(unsigned long long handle, unsigned long long size)
 {
     // std::cout << "Free chunk " << handle << "/" << this->preallocated_size << std::endl;
+    glNamedBufferPageCommitmentARB(buffer, handle * this->chunk_size * sizeof(ChunkBufferItem), 65536, GL_FALSE);
     free_chunks.emplace_back(handle);
     // std::cout << "Freed chunk " << handle << std::endl;
 }
@@ -62,5 +67,6 @@ SharedBuffer::~SharedBuffer()
 void SharedBuffer::UpdateChunk(unsigned long long handle, std::vector<ChunkBufferItem> &data)
 {
     auto offset = handle * this->chunk_size * sizeof(ChunkBufferItem);
+    glNamedBufferPageCommitmentARB(buffer, offset, 65536, GL_TRUE);
     glNamedBufferSubData(buffer, offset, data.size() * sizeof(ChunkBufferItem), data.data());
 }

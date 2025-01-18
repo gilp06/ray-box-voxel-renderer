@@ -18,7 +18,7 @@ class SharedBuffer
 public:
     SharedBuffer(unsigned long long preallocated_size, unsigned long long chunk_size);
     unsigned long long RequestNewChunkHandle();
-    void FreeChunkHandle(unsigned long long handle);
+    void FreeChunkHandle(unsigned long long handle, unsigned long long size);
     void UpdateChunk(unsigned long long handle, std::vector<ChunkBufferItem> &data);
     ~SharedBuffer();
     GLuint vao;

@@ -9,7 +9,7 @@
 
 World::World()
 {
-    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
 }
 
 std::shared_ptr<Chunk> World::GetChunk(glm::ivec3 position)
