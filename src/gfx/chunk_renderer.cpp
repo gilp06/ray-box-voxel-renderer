@@ -61,7 +61,8 @@ ChunkRenderer::ChunkRenderer(World &world) : world(world)
 
     glCreateBuffers(1, &indirect_buffer);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer);
-    glNamedBufferStorage(indirect_buffer, preallocated_size * sizeof(DrawArraysIndirectCommand), nullptr, GL_DYNAMIC_STORAGE_BIT | GL_SPARSE_STORAGE_BIT_ARB);
+    
+    glNamedBufferStorage(indirect_buffer, get_page_bytes(preallocated_size * sizeof(DrawArraysIndirectCommand), 65536), nullptr, GL_DYNAMIC_STORAGE_BIT | GL_SPARSE_STORAGE_BIT_ARB);
     indirect_commands.reserve(preallocated_size);
 }
 
@@ -105,12 +106,12 @@ void ChunkRenderer::Render(Camera &camera)
     // gen data for indirect draw
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer);
     // buffer page size is 65536, commit lowest number of pages
-    size_t pages_needed = (indirect_commands.size() * sizeof(DrawArraysIndirectCommand)) / 65536 + 1;
-    glNamedBufferPageCommitmentARB(indirect_buffer, 0, pages_needed * 65536, GL_TRUE);
+    size_t pages_needed = get_page_bytes(indirect_commands.size() * sizeof(ChunkBufferItem), 65536);
+    glNamedBufferPageCommitmentARB(indirect_buffer, 0, pages_needed, GL_TRUE);
     glNamedBufferSubData(indirect_buffer, 0, indirect_commands.size() * sizeof(DrawArraysIndirectCommand), indirect_commands.data());
     glMultiDrawArraysIndirect(GL_POINTS, 0, indirect_commands.size(), 0);
     // remove pages
-    glNamedBufferPageCommitmentARB(indirect_buffer, 0, pages_needed * 65536, GL_FALSE);
+    glNamedBufferPageCommitmentARB(indirect_buffer, 0, pages_needed, GL_FALSE);
 
     indirect_commands.clear();
 }

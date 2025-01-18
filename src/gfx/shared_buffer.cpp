@@ -1,6 +1,7 @@
 #include "shared_buffer.hpp"
 
 #include <iostream>
+#include <utils/utils.hpp>
 
 SharedBuffer::SharedBuffer(unsigned long long preallocated_size, unsigned long long chunk_size)
 {
@@ -53,7 +54,8 @@ unsigned long long SharedBuffer::RequestNewChunkHandle()
 void SharedBuffer::FreeChunkHandle(unsigned long long handle, unsigned long long size)
 {
     // std::cout << "Free chunk " << handle << "/" << this->preallocated_size << std::endl;
-    glNamedBufferPageCommitmentARB(buffer, handle * this->chunk_size * sizeof(ChunkBufferItem), 65536, GL_FALSE);
+
+    glNamedBufferPageCommitmentARB(buffer, handle * this->chunk_size * sizeof(ChunkBufferItem), get_page_bytes(size * sizeof(ChunkBufferItem), 65536), GL_FALSE);
     free_chunks.emplace_back(handle);
     // std::cout << "Freed chunk " << handle << std::endl;
 }
@@ -67,6 +69,6 @@ SharedBuffer::~SharedBuffer()
 void SharedBuffer::UpdateChunk(unsigned long long handle, std::vector<ChunkBufferItem> &data)
 {
     auto offset = handle * this->chunk_size * sizeof(ChunkBufferItem);
-    glNamedBufferPageCommitmentARB(buffer, offset, 65536, GL_TRUE);
+    glNamedBufferPageCommitmentARB(buffer, offset, get_page_bytes(data.size() * sizeof(ChunkBufferItem), 65536), GL_TRUE);
     glNamedBufferSubData(buffer, offset, data.size() * sizeof(ChunkBufferItem), data.data());
 }

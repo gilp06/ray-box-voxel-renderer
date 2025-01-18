@@ -114,6 +114,16 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 	std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
 }
 
+unsigned long long get_page_count(unsigned long long size, unsigned long long page_size)
+{
+    return (size / page_size) + 1;
+}
+
+unsigned long long get_page_bytes(unsigned long long size, unsigned long long page_size)
+{
+    return get_page_count(size, page_size) * page_size;
+}
+
 bool within_frustum(glm::vec3 position, glm::mat4 frustum_space)
 {
     
