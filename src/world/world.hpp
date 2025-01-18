@@ -29,7 +29,7 @@
 #include <utils/custom_hash.hpp>
 
 constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
-constexpr int32_t CHUNK_DISTANCE = 16;
+constexpr int32_t CHUNK_DISTANCE = 32;
 
 // using ChunkVariantRef = std::variant<std::reference_wrapper<Chunk>, std::reference_wrapper<CompressedChunk>>;
 
@@ -56,12 +56,9 @@ public:
 
     void Input(GLFWwindow *window);
 
-    FastNoiseLite noise;
-
-
 
 private:
-    ankerl::unordered_dense::map<glm::ivec3, std::shared_ptr<Chunk>> active_chunks;
+    ankerl::unordered_dense::segmented_map<glm::ivec3, std::shared_ptr<Chunk>> active_chunks;
     std::deque<glm::ivec3> chunks_to_load;
     std::deque<glm::ivec3> chunks_to_unload;
     std::unordered_set<glm::ivec3> chunks_to_load_set;

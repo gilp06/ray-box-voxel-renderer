@@ -15,26 +15,31 @@
 
 #include <ankerl/unordered_dense.h>
 #include <utils/custom_hash.hpp>
+#include <gfx/shared_buffer.hpp>
 
 // #define GLM_ENABLE_EXPERIMENTAL
 // #include <glm/gtx/hash.hpp>
 
-struct ChunkBufferItem
+struct DrawArraysIndirectCommand
 {
-    glm::uvec3 position;
-    uint32_t color;
+    GLuint count;
+    GLuint instanceCount;
+    GLuint first;
+    GLuint baseInstance;
 };
 
 class GPUChunk
 {
 public:
-    // GPUChunk(CompressedChunk &chunk);
-    GPUChunk(glm::ivec3 position, World& w);
+    GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, std::shared_ptr<Chunk> chunk);
     ~GPUChunk();
-    size_t size;
+    glm::ivec3 position;
+    // void UpdateMesh();
+    std::shared_ptr<SharedBuffer> buffer;
 
-    GLuint vao = 0;
-    GLuint vbo = 0;
+    size_t block_count;
+    unsigned long long chunk_handle;
+    DrawArraysIndirectCommand indirect_command;
 };
 
 class ChunkRenderer
@@ -46,7 +51,7 @@ public:
 
     void AddChunk(glm::ivec3 position);
     void RemoveChunk(glm::ivec3 position);
-    void Render(Camera& camera);
+    void Render(Camera &camera);
     void Update();
 
     void OnChunkLoad(const glm::ivec3 &position);
@@ -58,6 +63,11 @@ private:
     ShaderProgram *shader = nullptr;
 
     // loaded chunks
-    ankerl::unordered_dense::map<glm::ivec3, std::shared_ptr<GPUChunk>> chunks;
+    ankerl::unordered_dense::segmented_map<glm::ivec3, std::shared_ptr<GPUChunk>> chunks;
     std::deque<glm::ivec3> chunks_to_gen_mesh;
+
+    std::shared_ptr<SharedBuffer> buffer;
+
+    GLuint indirect_buffer;
+    std::vector<DrawArraysIndirectCommand> indirect_commands;
 };
