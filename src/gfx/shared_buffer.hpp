@@ -5,6 +5,7 @@
 #include <ankerl/unordered_dense.h>
 #include <vector>
 
+
 struct ChunkBufferItem
 {
     glm::ivec3 position;

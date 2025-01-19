@@ -23,9 +23,9 @@ std::vector<std::string> GetFilesInDirectory(const std::string &directory)
     }
     return files;
 }
-uint32_t PackColorToInt(int color[4])
+uint32_t PackColorToInt(int color[3])
 {
-    return (color[0] << 24) | (color[1] << 16) | (color[2] << 8) | color[3];
+    return (color[0] << 24) | (color[1] << 16) | (color[2] << 8);
 };
 
 Json::Value LoadJsonFile(const std::string &filename)
@@ -135,18 +135,18 @@ bool within_frustum(glm::vec3 position, glm::mat4 frustum_space)
 
     glm::vec3 points[8] = {
         glm::vec3(0, 0, 0),
-        glm::vec3(16, 0, 0),
-        glm::vec3(0, 16, 0),
-        glm::vec3(16, 16, 0),
-        glm::vec3(0, 0, 16),
-        glm::vec3(16, 0, 16),
-        glm::vec3(0, 16, 16),
-        glm::vec3(16, 16, 16),
+        glm::vec3(1, 0, 0),
+        glm::vec3(0, 1, 0),
+        glm::vec3(1, 1, 0),
+        glm::vec3(0, 0, 1),
+        glm::vec3(1, 0, 1),
+        glm::vec3(0, 1, 1),
+        glm::vec3(1, 1, 1),
     };
     int count = 0;
     for (int i = 0; i < 8; i++)
     {
-        glm::vec4 point = frustum_space * glm::vec4(points[i] + position, 1.0f);
+        glm::vec4 point = frustum_space * glm::vec4(points[i] * 32.0f + position, 1.0f);
         point /= point.w;
         if (point.x < -1 || point.x > 1 || point.y < -1 || point.y > 1 || point.z < -1 || point.z > 1)
         {

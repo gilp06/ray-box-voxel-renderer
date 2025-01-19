@@ -58,7 +58,7 @@ std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
         {
             for (int y = 0; y < CHUNK_SIZE; y++)
             {
-                if(rand() % 100 < 10)
+                if(rand() % 1000 < 1)
                 {
                     chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("grass"));
                 }

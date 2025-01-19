@@ -24,6 +24,7 @@ layout(std140) uniform ubo {
 
 
 out VertexOutput vertexOutput;
+flat out int lod;
 
 
 
@@ -31,22 +32,24 @@ mat4 getViewRotation(in mat4 view) {
     return mat4(mat3(view));
 };
 
-vec4 unpackColor(in uint color) {
+vec4 unpackData(in uint color) {
     return vec4(
         float((color & 0xFF000000) >> 24) / 255.0,
         float((color & 0x00FF0000) >> 16) / 255.0,
         float((color & 0x0000FF00) >> 8) / 255.0,
-        float((color & 0x000000FF)) / 255.0
+        float(color & 0x000000FF)
     );
 };
 
 void main() {
-    vertexOutput.position = view_pos * (vec4(aPos,1.0) + vec4(0.5,0.5,0.5,0.0) * 1.0);
+    vec4 block_data = unpackData(aColor);
+    lod = int(block_data.a);
+    vertexOutput.position = view_pos * (vec4(aPos,1.0) + vec4(0.5,0.5,0.5,0.0) * lod);
     float color_shift = random(abs(aPos.x) ^ abs(aPos.y) ^ abs(aPos.z));
     // clamp to 0.1 - 0.2
     color_shift = -0.15 + color_shift * 0.3;
 
-    vertexOutput.color = unpackColor(aColor).rgb + vec3(color_shift);
+    vertexOutput.color = block_data.rgb + vec3(color_shift);
 
     gl_Position = proj * view_rot * vertexOutput.position;
     float ratio = uViewport.z / uViewport.w;
@@ -57,7 +60,7 @@ void main() {
 
     reduce += 0.02; // larger size = cleaner normals but worse performance
     float scale = 1.05;
-    float size = (uViewport.w*scale) / gl_Position.z * max(reduce, 1.0);
+    float size = (uViewport.w*scale) / gl_Position.z * max(reduce, 1.0) * lod;
 
     gl_PointSize = size;
 }

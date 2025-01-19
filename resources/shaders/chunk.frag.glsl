@@ -16,6 +16,7 @@ layout(std140) uniform ubo {
 
 
 in VertexOutput vertexOutput;
+flat in int lod;
 out vec4 FragColor;
 
 vec3 ss2wsVec(float x, float y){
@@ -59,7 +60,7 @@ void main() {
     vec3 light = normalize(vec3(-1.0, 1.0, 0));
     vec3 vxl = vertexOutput.position.xyz;
     vec3 ray = ss2wsVec(gl_FragCoord.x/uViewport.z, gl_FragCoord.y/uViewport.w);
-    vec2 result = AABBIntersect(vec3(0.0), ray, vec3(vxl - 0.5), vec3(vxl + 0.5));
+    vec2 result = AABBIntersect(vec3(0.0), ray, vec3(vxl - 0.5 * lod), vec3(vxl + 0.5 * lod));
     if(result.x > result.y) {
         discard;
     }

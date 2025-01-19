@@ -15,8 +15,12 @@ GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, st
             continue;
         }
         glm::ivec3 world_pos = (position * (int)CHUNK_SIZE) + glm::ivec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
-        // std::cout << world_pos.x << " " << world_pos.y << " " << world_pos.z << std::endl;
-        data.push_back({world_pos, BlockManager::GetBlockData(chunk->GetBlocks()[i]).color});
+
+        // inject lod data into color
+        // random pick one through 4
+
+        int lod = rand() % 4 + 1;
+        data.push_back({world_pos, BlockManager::GetBlockData(chunk->GetBlocks()[i]).color | lod});
 
         // data.push_back({world_pos, BlockManager::GetBlockData();
     }
@@ -92,8 +96,13 @@ void ChunkRenderer::Render(Camera &camera)
     std::vector<DrawArraysIndirectCommand> indirect_commands;
     for (auto &chunk : chunks)
     {
+        // if (within_frustum(glm::vec3(chunk.second->position), frustum_space))
+        // {
+        //     indirect_commands.push_back(chunk.second->indirect_command);
+        // }
         indirect_commands.push_back(chunk.second->indirect_command);
     }
+
     // std::cout << "Try draw " << indirect_commands.size() << " chunks" << std::endl;
     if (indirect_commands.size() == 0)
     {
