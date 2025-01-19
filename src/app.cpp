@@ -25,7 +25,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     app->height = height;
 }
 
-AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0f, 0.1f, 1000.0f, 90.0f, 0.0f)
+AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0f, 0.1f, 10000.0f, 90.0f, 0.0f)
 {
     // World Initialization
     BlockManager::RegisterBlock("air", {BlockType::Empty, 0});
@@ -208,7 +208,7 @@ void AppState::Run()
     while (!glfwWindowShouldClose(window))
     {
         FrameMarkStart("Frame");
-        glClearColor(0.0, 0.0, 0.0, 1.0);
+        glClearColor(0.7, 1.0, 1.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwPollEvents();
 

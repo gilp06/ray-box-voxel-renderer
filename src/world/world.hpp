@@ -28,15 +28,22 @@
 #include <ankerl/unordered_dense.h>
 #include <utils/custom_hash.hpp>
 
-constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 4;
-constexpr int32_t CHUNK_DISTANCE = 8;
+constexpr int32_t WORLD_HEIGHT_IN_CHUNKS = 8;
+constexpr int32_t CHUNK_DISTANCE = 32;
+const int32_t LOD_RING_1 = 12;
+const int32_t LOD_RING_2 = 20;
+const int32_t LOD_RING_3 = 26;
 
 // using ChunkVariantRef = std::variant<std::reference_wrapper<Chunk>, std::reference_wrapper<CompressedChunk>>;
+
+
 
 class World
 {
 public:
+    using ChunkLoadCallback = std::function<void(const glm::ivec3 &, int lod)>;
     using ChunkCallback = std::function<void(const glm::ivec3 &)>;
+
     World();
 
     std::shared_ptr<Chunk> GetChunk(glm::ivec3 position);
@@ -50,32 +57,36 @@ public:
     void Update(glm::vec3 player_position);
     void UpdateAdjacentChunks(glm::ivec3 position);
 
-    void SubscribeToChunkLoad(ChunkCallback callback);
+    void SubscribeToChunkLoad(ChunkLoadCallback callback);
     void SubscribeToChunkUnload(ChunkCallback callback);
-    void SubscribeToChunkUpdate(ChunkCallback callback);
+    void SubscribeToChunkUpdate(ChunkLoadCallback callback);
 
     void Input(GLFWwindow *window);
-
+    FastNoiseLite noise;
 
 private:
+
+    glm::vec3 player_position;
+
     ankerl::unordered_dense::segmented_map<glm::ivec3, std::shared_ptr<Chunk>> active_chunks;
     std::deque<glm::ivec3> chunks_to_load;
     std::deque<glm::ivec3> chunks_to_unload;
     std::unordered_set<glm::ivec3> chunks_to_load_set;
     std::unordered_set<glm::ivec3> chunks_to_unload_set;
 
-
-    std::vector<ChunkCallback> chunk_load_callbacks;
+    std::vector<ChunkLoadCallback> chunk_load_callbacks;
     std::vector<ChunkCallback> chunk_unload_callbacks;
-    std::vector<ChunkCallback> chunk_update_callbacks;
+    std::vector<ChunkLoadCallback> chunk_update_callbacks;
 
     void AddChunkToLoad(const glm::ivec3 &position);
     void AddChunkToUnload(const glm::ivec3 &position);
-    bool FetchNextChunkToLoad(glm::ivec3& chunk_pos);
-    bool FetchNextChunkToUnload(glm::ivec3& chunk_pos);
+    bool FetchNextChunkToLoad(glm::ivec3 &chunk_pos);
+    bool FetchNextChunkToUnload(glm::ivec3 &chunk_pos);
 
     void NotifyChunkLoad(const glm::ivec3 &position);
     void NotifyChunkUnload(const glm::ivec3 &position);
     void NotifyChunkUpdate(const glm::ivec3 &position);
+
+    int DetermineLoD(glm::ivec3 chunk_pos);
     // std::unordered_map<glm::ivec3, CompressedChunk> inactive_chunks;
 };

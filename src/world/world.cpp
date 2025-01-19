@@ -9,7 +9,13 @@
 
 World::World()
 {
-
+    noise.SetSeed(1337);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFrequency(0.01);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(5);
+    noise.SetFractalLacunarity(2.0);
+    noise.SetFractalGain(0.5);
 }
 
 std::shared_ptr<Chunk> World::GetChunk(glm::ivec3 position)
@@ -44,9 +50,9 @@ std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
     // set all blocks to air
 
     // base height
-    int base_height = 32;
+    int base_height = 48;
     // noise height
-    int noise_height = 8; // max modulation
+    int noise_height = 20; // max modulation
     if (position.y == WORLD_HEIGHT_IN_CHUNKS - 2)
     {
         active_chunks.try_emplace(position, chunk);
@@ -56,11 +62,21 @@ std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
     {
         for (int z = 0; z < CHUNK_SIZE; z++)
         {
+            int height = base_height + (int)(noise.GetNoise((float)(position.x * CHUNK_SIZE + x), (float)(position.z * CHUNK_SIZE + z)) * noise_height);
             for (int y = 0; y < CHUNK_SIZE; y++)
             {
-                if(rand() % 1000 < 1)
+                int y_world_pos = position.y * CHUNK_SIZE + y;
+                if (y_world_pos == height)
                 {
                     chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("grass"));
+                }
+                else if (y_world_pos < height && y_world_pos > height - 4)
+                {
+                    chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("dirt"));
+                }
+                else if (y_world_pos < height)
+                {
+                    chunk->SetBlock(x, y, z, BlockManager::GetBlockIndex("stone"));
                 }
                 else
                 {
@@ -69,6 +85,16 @@ std::shared_ptr<Chunk> World::NewChunk(glm::ivec3 position)
             }
         }
     }
+
+    // // cube in corner of chunk
+    // chunk->SetBlock(0, 0, 0, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(0, 1, 0, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(1, 1, 0, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(0, 1, 1, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(1, 1, 1, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(1, 0, 1, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(1, 0, 0, BlockManager::GetBlockIndex("grass"));
+    // chunk->SetBlock(0, 0, 1, BlockManager::GetBlockIndex("grass"));
 
     // chunk->SetBlock(0, 0, 0, BlockManager::GetBlockIndex("grass"));
 
@@ -130,6 +156,7 @@ bool World::ChunkLoaded(glm::ivec3 position)
 void World::Update(glm::vec3 player_position)
 {
     ZoneScoped;
+    this->player_position = player_position;
     // todo implement async chunk loading and unloading
     // load chunks around player.
 
@@ -158,10 +185,15 @@ void World::Update(glm::vec3 player_position)
         {
             for (int z = -CHUNK_DISTANCE; z <= CHUNK_DISTANCE; z++)
             {
+
                 glm::ivec3 chunk_pos = glm::ivec3(x, y, z) + player_chunk;
                 if (chunk_pos.y < 0 || chunk_pos.y >= WORLD_HEIGHT_IN_CHUNKS)
                     continue;
 
+                // lod is based on distance from player
+                // lod from 1 to 5 based on distance from player
+                // 1 is closest to player
+                // 5 is farthest from player
                 AddChunkToLoad(chunk_pos);
             }
         }
@@ -181,6 +213,7 @@ void World::Update(glm::vec3 player_position)
 
     // unload one chunk per frame
     glm::ivec3 chunk_pos;
+    int lod;
     if (FetchNextChunkToLoad(chunk_pos))
     {
         NewChunk(chunk_pos);
@@ -211,12 +244,12 @@ void World::UpdateAdjacentChunks(glm::ivec3 position)
         glm::ivec3 new_pos = position + dir;
         if (ChunkLoaded(new_pos))
         {
-            NotifyChunkUpdate(new_pos);
+            // NotifyChunkUpdate(new_pos, 1);
         }
     }
 }
 
-void World::SubscribeToChunkLoad(ChunkCallback callback)
+void World::SubscribeToChunkLoad(ChunkLoadCallback callback)
 {
     chunk_load_callbacks.push_back(callback);
 }
@@ -226,7 +259,7 @@ void World::SubscribeToChunkUnload(ChunkCallback callback)
     chunk_unload_callbacks.push_back(callback);
 }
 
-void World::SubscribeToChunkUpdate(ChunkCallback callback)
+void World::SubscribeToChunkUpdate(ChunkLoadCallback callback)
 {
     chunk_update_callbacks.push_back(callback);
 }
@@ -281,9 +314,10 @@ bool World::FetchNextChunkToUnload(glm::ivec3 &chunk_pos)
 
 void World::NotifyChunkLoad(const glm::ivec3 &position)
 {
+    int lod = DetermineLoD(position);
     for (auto &callback : chunk_load_callbacks)
     {
-        callback(position);
+        callback(position, lod);
     }
 }
 
@@ -297,8 +331,35 @@ void World::NotifyChunkUnload(const glm::ivec3 &position)
 
 void World::NotifyChunkUpdate(const glm::ivec3 &position)
 {
+    int lod = DetermineLoD(position);
     for (auto &callback : chunk_update_callbacks)
     {
-        callback(position);
+        callback(position, lod);
     }
+}
+
+int World::DetermineLoD(glm::ivec3 chunk_pos)
+{
+    // get distance from player
+    // set lod based on distance
+    // 1 is closest to player
+    // 5 is farthest from player
+    // lod = 1 + distance / LOD_DISTANCE
+    int lod = 1;
+
+    glm::ivec3 player_chunk = glm::floor(glm::vec3(player_position) / (float)CHUNK_SIZE);
+    glm::ivec3 chunk_offset = chunk_pos - player_chunk;
+    if (abs(chunk_offset.x) > LOD_RING_3 || abs(chunk_offset.y) > LOD_RING_3 || abs(chunk_offset.z) > LOD_RING_3)
+    {
+        return 4;
+    }
+    if (abs(chunk_offset.x) > LOD_RING_2 || abs(chunk_offset.y) > LOD_RING_2 || abs(chunk_offset.z) > LOD_RING_2)
+    {
+        return 3;
+    }
+    if (abs(chunk_offset.x) > LOD_RING_1 || abs(chunk_offset.y) > LOD_RING_1 || abs(chunk_offset.z) > LOD_RING_1)
+    {
+        return 2;
+    }
+    return 1;
 }

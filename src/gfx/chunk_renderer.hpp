@@ -31,7 +31,7 @@ struct DrawArraysIndirectCommand
 class GPUChunk
 {
 public:
-    GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, std::shared_ptr<Chunk> chunk);
+    GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, std::shared_ptr<Chunk> chunk, int lod);
     ~GPUChunk();
     glm::ivec3 position;
     // void UpdateMesh();
@@ -49,14 +49,14 @@ public:
     ~ChunkRenderer();
     // void AddChunk(glm::ivec3 position, CompressedChunk &chunk);
 
-    void AddChunk(glm::ivec3 position);
+    void AddChunk(glm::ivec3 position, int lod = 1);
     void RemoveChunk(glm::ivec3 position);
     void Render(Camera &camera);
     void Update();
 
-    void OnChunkLoad(const glm::ivec3 &position);
+    void OnChunkLoad(const glm::ivec3 &position, int lod = 1);
     void OnChunkUnload(const glm::ivec3 &position);
-    void OnChunkUpdate(const glm::ivec3 &position);
+    void OnChunkUpdate(const glm::ivec3 &position, int lod = 1);
 
 private:
     World &world;
