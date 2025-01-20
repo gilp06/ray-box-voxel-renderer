@@ -5,6 +5,7 @@
 
 GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, std::shared_ptr<Chunk> chunk, int lod)
 {
+    ZoneScoped;
     this->position = position;
 
     // first pass, reduce chunk to CHUNK_SIZE/lod
@@ -15,6 +16,31 @@ GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, st
     int scale = 1 << (lod - 1);
     std::vector<uint8_t> reduced_chunk(reduced_size * reduced_size * reduced_size, 0);
     const uint8_t *blocks = chunk->GetBlocks();
+
+    // check if chunk is empty
+    bool empty = true;
+    for (int i = 0; i < CHUNK_VOLUME; i++)
+    {
+        if (blocks[i] != BlockManager::GetBlockIndex("air"))
+        {
+            empty = false;
+            break;
+        }
+    }
+
+    if (empty)
+    {
+        block_count = 0;
+        chunk_handle = -1;
+
+        indirect_command.first = chunk_handle * CHUNK_VOLUME;
+        indirect_command.count = block_count;
+        indirect_command.instanceCount = 1;
+        indirect_command.baseInstance = 0;
+
+        this->buffer = buffer;
+        return;
+    }
 
     if (lod == 1)
     {
@@ -77,6 +103,7 @@ GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, st
     }
 
     // second pass, pass only transparent blocks
+
     std::vector<ChunkBufferItem> data;
     for (int i = 0; i < reduced_chunk.size(); i++)
     {
@@ -96,22 +123,22 @@ GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, st
 
         glm::ivec3 block_pos_in_chunk = glm::ivec3(deinterleaveBits(i, 2), deinterleaveBits(i, 1), deinterleaveBits(i, 0));
 
-        for(int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++)
         {
             glm::ivec3 offset = offsets[i];
             int index = interleaveBits(block_pos_in_chunk.x + offset.x, block_pos_in_chunk.y + offset.y, block_pos_in_chunk.z + offset.z);
-            if(index < 0 || index >= reduced_chunk.size())
+            if (index < 0 || index >= reduced_chunk.size())
             {
                 continue;
             }
-            if(reduced_chunk[index] == BlockManager::GetBlockIndex("air"))
+            if (reduced_chunk[index] == BlockManager::GetBlockIndex("air"))
             {
                 visible = true;
                 break;
             }
         }
 
-        if(!visible)
+        if (!visible)
         {
             continue;
         }
@@ -153,13 +180,13 @@ GPUChunk::GPUChunk(std::shared_ptr<SharedBuffer> buffer, glm::ivec3 position, st
 GPUChunk::~GPUChunk()
 {
     // std::cout << "Free chunk handle" << std::endl;
-    buffer->FreeChunkHandle(chunk_handle, block_count);
+    if(chunk_handle != -1)
+        buffer->FreeChunkHandle(chunk_handle, block_count);
     // std::cout << "Freed chunk handle" << std::endl;
 }
 
 ChunkRenderer::ChunkRenderer(World &world) : world(world)
 {
-
     // bbox size
     unsigned long long preallocated_size = 2 * (2 * CHUNK_DISTANCE + 1) * (2 * CHUNK_DISTANCE + 1) * WORLD_HEIGHT_IN_CHUNKS;
     buffer = std::make_shared<SharedBuffer>(preallocated_size, CHUNK_VOLUME);
