@@ -106,18 +106,10 @@ AppState::AppState() : camera(glm::vec3(0.0f, 0.0f, 0.0f), 90.0f, 640.0f / 480.0
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
 
-    chunk_renderer = new ChunkRenderer(w);
+    // chunk_renderer = new ChunkRenderer(w);
+    world = std::make_shared<World>();
+    chunk_renderer = std::make_shared<ChunkRenderer>(world);
 
-    // for (int x = -10; x < 10; x++)
-    // {
-    //     for (int z = -10; z < 10; z++)
-    //     {
-    //         Chunk &chunk = w.GetChunk(glm::ivec3(x, 0, z));
-    //         chunk_renderer->AddChunk(glm::ivec3(x, 0, z));
-    //     }
-    // }
-
-    // Chunk Renderer Initialization
 }
 
 void AppState::Input()
@@ -160,8 +152,8 @@ void AppState::Update()
 
     // update world load
 
-    w.Update(camera.pos);
-    // chunk_renderer->Update();
+    world->Update(camera.pos);
+    chunk_renderer->Update();
     // chunk_renderer->AddChunk(glm::ivec3(0, 0, 0));
 
     // std::cout << camera.pos.x << " " << camera.pos.y << " " << camera.pos.z << std::endl;
