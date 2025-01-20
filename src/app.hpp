@@ -20,9 +20,10 @@ public:
     void Render();
 
     Camera camera;
-    World w;
     
-    ChunkRenderer* chunk_renderer = nullptr;
+    std::shared_ptr<World> world;
+    std::shared_ptr<ChunkRenderer> chunk_renderer;
+
 
     GLFWwindow *window = nullptr;
     GLuint ubo = 0;
